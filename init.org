@@ -511,40 +511,37 @@ orgファイルをmarkdownファイルに変換してくれます。
 
 ** IME (日本語入力メソッド)
 
-*** [[https://github.com/trueroad/tr-emacs-ime-module][tr-ime]] (Windows向け)
+*** [[https://ddskk.readthedocs.io/ja/latest/index.html][ddskk]]
 
-Windows環境でOS標準のIME (MS-IMEなど) をEmacs内でスムーズに利用するための設定です。
+これまで[[github.com/trueroad/tr-emacs-ime-module][tr-ime]]やmozcを使用していましたが、ddskkを使用するよう挑戦しています。
+[[https://ddskk.readthedocs.io/ja/latest/05_basic.html][こちら]]の使い方を見ながら練習しています。
+従来の設定方法を見たい場合は[[https://qiita.com/nobuyuki86/items/122e85b470b361ded0b4#ime][過去の記事]]を参照してください。
 
-#+begin_src emacs-lisp
-  (use-package tr-ime
-    :if IS-WINDOWS
-    :config
-    (setopt default-input-method "W32-IME")
-    (tr-ime-standard-install)
-    (w32-ime-initialize))
-#+end_src
-
-*** mozc (Linux/macOS向け)
-
-LinuxやmacOS環境でMozc (Google日本語入力のオープンソース版) をEmacsの入力メソッドとして利用するための設定です。
-[[https://www.kkaneko.jp/tools/server/mozc.html][日本語変換 Mozc の設定，emacs 用の Mozc の設定（Ubuntu 上）]]を参考にしています。
-
-**** 必要なパッケージを導入 (Ubuntuの場合)
+**** Ubuntu/Debian系の辞書インストール
 
 #+begin_src shell
-  sudo apt install fcitx-libs-dev # Fcitxライブラリ (開発用)
-  sudo apt install emacs-mozc     # Emacs用Mozcパッケージ
-  fcitx-config-gtk                # Fcitx設定ツール (GUI)
+  sudo apt install skkdic skkdic-extra
 #+end_src
 
-**** Emacs側の設定
+**** Windowsでの辞書のインストール
+
+[[https://skk-dev.github.io/dict/][こちら]]から辞書をダウンロードして所定の場所に格納します。(私はユーザーディレクトリの.skkディレクトリに格納しています)
+
+**** ddskkの設定
 
 #+begin_src emacs-lisp
-  (use-package mozc
-    :unless IS-WINDOWS
-    :defer t
+  (use-package ddskk
+    :bind ("C-x C-j" . skk-mode)
     :init
-    (setopt default-input-method "japanese-mozc"))
+    (cond (IS-LINUX
+           (setopt skk-large-jisyo "/usr/share/skk/SKK-JISYO.L"
+                   skk-extra-jisyo-file-list '("/usr/share/skk/SKK-JISYO.geo"
+                                               "/usr/share/skk/SKK-JISYO.jinmei"
+                                               "/usr/share/skk/SKK-JISYO.propernoun"
+                                               "/usr/share/skk/SKK-JISYO.station"
+                                               "/usr/share/skk/SKK-JISYO.law")))
+          (IS-WINDOWS
+           (setopt skk-large-jisyo (expand-file-name ".skk/SKK-JISYO.L" (getenv "USERPROFILE"))))))
 #+end_src
 
 ** [[https://github.com/minad/corfu][corfu]]
