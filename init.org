@@ -513,7 +513,7 @@ orgファイルをmarkdownファイルに変換してくれます。
 
 *** [[https://ddskk.readthedocs.io/ja/latest/index.html][ddskk]]
 
-これまで[[github.com/trueroad/tr-emacs-ime-module][tr-ime]]やmozcを使用していましたが、ddskkを使用するよう挑戦しています。
+これまで[[https://github.com/trueroad/tr-emacs-ime-module][tr-ime]]やmozcを使用していましたが、ddskkを使用するよう挑戦しています。
 [[https://ddskk.readthedocs.io/ja/latest/05_basic.html][こちら]]の使い方を見ながら練習しています。
 従来の設定方法を見たい場合は[[https://qiita.com/nobuyuki86/items/122e85b470b361ded0b4#ime][過去の記事]]を参照してください。
 
