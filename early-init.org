@@ -1,0 +1,73 @@
+#+TITLE: Emacs 早期初期化ファイル
+#+AUTHOR: kn66
+#+LANGUAGE: ja
+
+* はじめに
+
+~early-init.el~ はEmacs 27以降で導入された、通常の ~init.el~ より前に読み込まれる設定ファイルです。
+GUIの初期化やパッケージシステムの初期化よりも先に実行されるため、以下のような設定に適しています：
+
+- フレーム（ウィンドウ）の外観設定
+- パッケージ初期化の制御
+- 起動時のちらつき防止
+
+* early-init.el
+
+** header
+
+#+begin_src emacs-lisp
+  ;;; package --- 初期設定ファイル -*- lexical-binding: t; -*-
+  ;;; Commentary:
+  ;;; Code:
+#+end_src
+
+** custom変数の保存先を変更
+
+~M-x customize~ などで設定したカスタム変数を、 ~init.el~ とは別のファイルに保存します。
+これにより、自動生成されるカスタム設定と手動で記述した設定を分離できます。
+
+#+begin_src emacs-lisp
+  (setq custom-file (locate-user-emacs-file "custom.el"))
+  (when (file-exists-p (expand-file-name custom-file))
+    (load-file (expand-file-name custom-file)))
+#+end_src
+
+** 画面最大化
+
+Emacsのフレームを起動時に最大化します。
+~early-init.el~ で設定することで、起動時に一瞬小さいウィンドウが表示されてから最大化されるちらつきを防げます。
+
+#+begin_src emacs-lisp
+  (push '(fullscreen . maximized) default-frame-alist)
+#+end_src
+
+** スクロールバー非表示
+
+GUIのスクロールバーを非表示にします。
+
+#+begin_src emacs-lisp
+  (scroll-bar-mode -1)
+#+end_src
+
+** メニューバー非表示
+
+画面上部のメニューバー（File, Edit, ...）を非表示にします。
+
+#+begin_src emacs-lisp
+  (menu-bar-mode -1)
+#+end_src
+
+** ツールバー非表示
+
+GUIのツールバー（アイコンボタン群）を非表示にします。
+
+#+begin_src emacs-lisp
+  (tool-bar-mode -1)
+#+end_src
+
+** footer
+
+#+begin_src emacs-lisp
+  (provide 'early-init)
+  ;;; early-init.el ends here
+#+end_src

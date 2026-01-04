@@ -1,0 +1,1722 @@
+#+TITLE: Emacs 設定ファイル
+#+AUTHOR: kn66
+#+LANGUAGE: ja
+#+OPTIONS: toc:2 num:nil
+
+* はじめに
+
+このファイルは私のEmacs設定をLiterate Programming形式で記述したものです。
+~org-babel-load-file~ を使用して ~init.el~ を生成します。
+
+** 特徴
+
+- *モダンなパッケージ管理*: ~use-package~ と ~package.el~ を使用
+- *高速な補完UI*: Corfu + Vertico + Consult + Embark の組み合わせ
+- *Tree-sitter対応*: 正確なシンタックスハイライトとコード解析
+- *LSPサポート*: ~lsp-mode~ による多言語対応
+- *マルチOS対応*: Windows / Linux に対応（macOSは未検証）
+
+** 使い方
+
+1. このファイルを ~~/.emacs.d/init.org~ として配置
+2. Emacsを起動し、 ~M-x org-babel-tangle~ を実行
+3. 生成された ~init.el~ が次回起動時から読み込まれます
+
+** 必要な外部ツール
+
+- ~cmigemo~: 日本語のローマ字検索 (任意)
+- ~ripgrep~: 高速なファイル検索 (推奨)
+- ~fd~: 高速なファイル検索 (推奨)
+- Tree-sitter用の各言語パーサー
+
+* init.el
+
+** header
+
+#+begin_src emacs-lisp
+  ;;; package --- 初期設定ファイル -*- lexical-binding: t; -*-
+  ;;; Commentary:
+  ;;; Emacsの全体的な設定やパッケージ管理を行います。
+  ;;; Code:
+#+end_src
+
+** OS判定用定数
+
+オペレーティングシステムを判定するための定数を定義します。
+これにより、OS固有の設定を条件分岐で記述できます。
+
+#+begin_src emacs-lisp
+  (defconst IS-MAC (eq system-type 'darwin))
+  (defconst IS-LINUX (memq system-type '(gnu gnu/linux gnu/kfreebsd berkeley-unix)))
+  (defconst IS-WINDOWS (memq system-type '(cygwin windows-nt ms-dos)))
+#+end_src
+
+** 文字コード
+
+Windows環境における文字コード関連の設定です。
+特に ~default-process-coding-system~ の設定は、外部プロセスとの連携において重要です。
+slack emacs-jpコミュニティのwindowsチャンネルでの議論を参考にしています。
+
+#+begin_src emacs-lisp
+  (when IS-WINDOWS
+    (set-language-environment "UTF-8")
+    (setopt file-name-coding-system 'cp932)
+    (setopt default-process-coding-system '(utf-8-dos . japanese-cp932-dos)))
+#+end_src
+
+** package.el
+
+Emacsのパッケージ管理システム ~package.el~ の設定です。
+MELPAリポジトリを追加し、パッケージの取得元や優先順位を設定します。
+
+#+begin_src emacs-lisp
+    (require 'package)
+
+    (add-to-list 'package-archives '("gnu-elpa-devel" . "https://elpa.gnu.org/devel/"))
+    (add-to-list 'package-archives '("nongnu-devel" . "https://elpa.nongnu.org/nongnu-devel/") t)
+    (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
+
+    ;; インストールする優先順位を指定
+    (setopt package-archive-priorities
+            '(("gnu-elpa-devel" . 3)
+              ("nongnu-devel" . 2)
+              ("melpa" . 1)))
+    ;; 安定版を使用したい場合は下記のように設定
+    ;; (setopt package-archive-priorities
+    ;;         '(("gnu" . 3)
+    ;;           ("nongnu" . 2)
+    ;;           ("melpa" . 1)))
+
+    (setopt package-install-upgrade-built-in t ; built-inパッケージも更新対象にする
+            package-native-compile t           ; インストール時にnative compileする
+            )
+#+end_src
+
+*** [[https://github.com/kn66/package-git.el][package-git]]
+
+elpaディレクトリ上にtarball形式のパッケージを管理する用のリポジトリを作成し、自動的に管理すための自作パッケージです。
+インストールや削除、アップグレードの操作時に自動的に状態をコミットしてバージョン管理します。
+
+#+begin_src emacs-lisp
+  (use-package package-git
+    :vc ( :url "https://github.com/kn66/package-git.el"
+          :rev :newest)
+    :config
+    (package-git-enable))
+#+end_src
+
+*** [[https://github.com/kn66/package-retry.el][package-retry]]
+
+パッケージのインストールでネットワークエラーが発生した際のリトライ処理を実装します。
+
+#+begin_src emacs-lisp
+  (use-package package-retry
+    :vc ( :url "https://github.com/kn66/package-retry.el.git"
+          :rev :newest)
+    :config
+    (package-retry-mode))
+#+end_src
+
+*** use-package
+
+パッケージの導入や設定を簡潔に記述するためのマクロ ~use-package~ の設定です。
+Emacs 29から標準機能として組み込まれました。
+
+#+begin_src emacs-lisp
+  (use-package use-package
+    :config
+    (setopt use-package-enable-imenu-support t ; use-packageの設定をimenuで利用可能にする
+            use-package-always-ensure t        ; :ensure t を全ての use-package 宣言に適用
+            ))
+#+end_src
+
+** Emacs標準機能の設定
+
+Emacsの標準機能に関する各種カスタマイズを行います。
+
+*** yes-or-noをy-or-nに変更
+
+ミニバッファでの ~yes~ または ~no~ の問い合わせに対し、 ~y~ または ~n~ で応答できるようにします。
+
+#+begin_src emacs-lisp
+  (setopt use-short-answers t)
+#+end_src
+
+*** ロックファイル・バックアップファイルを作成しない
+
+#+begin_src emacs-lisp
+  (setopt make-backup-files nil
+          backup-inhibited nil
+          create-lockfiles nil)
+#+end_src
+
+*** ビープ音を無効化
+
+Emacsがエラーや通知で発するビープ音を鳴らさないようにします。
+
+#+begin_src emacs-lisp
+  (setopt ring-bell-function 'ignore)
+#+end_src
+
+*** デーモン起動
+
+Emacsをサーバーとして起動し、~emacsclient~ コマンドからの接続を受け付けられるようにします。
+これにより、既存のEmacsプロセスでファイルを高速に開くことができます。
+
+#+begin_src emacs-lisp
+  (use-package server
+    :ensure nil
+    :config
+    (server-mode))
+#+end_src
+
+*** 最後のカーソル位置を保存する
+
+ファイルを開いたときに、前回閉じたときのカーソル位置を復元します。
+
+#+begin_src emacs-lisp
+  (use-package saveplace
+    :ensure nil
+    :init
+    (save-place-mode))
+#+end_src
+
+*** ファイルの閲覧履歴を保存する
+
+最近開いたファイルのリストを保持し、簡単に再度アクセスできるようにします。
+
+#+begin_src emacs-lisp
+  (use-package recentf
+    :ensure nil
+    :config
+    (setopt recentf-max-saved-items 1024) ;; 保存する履歴の最大数
+    (recentf-mode))
+#+end_src
+
+*** コマンドの履歴を保存
+
+ミニバッファの入力履歴や、検索・置換の履歴などをEmacsセッション間で保存します。
+
+#+begin_src emacs-lisp
+  (use-package savehist
+    :ensure nil
+    :init
+    (savehist-mode))
+#+end_src
+
+*** 対応括弧を自動補完
+
+開き括弧 ~(~ や引用符 ~"~ などを入力した際に、対応する閉じ括弧や引用符を自動的に挿入します。
+
+#+begin_src emacs-lisp
+  (use-package elec-pair
+    :ensure nil
+    :config
+    (electric-pair-mode))
+#+end_src
+
+*** camelCase単位で移動する
+
+~camelCase~ や ~snake_case~ のような複合語を、各部分（サブワード）ごとに単語として認識し、
+サブワード単位でのカーソル移動や編集操作を可能にします。
+
+#+begin_src emacs-lisp
+  (use-package subword
+    :ensure nil
+    :init
+    (global-subword-mode))
+#+end_src
+
+*** 削除したファイルをゴミ箱に移動させる
+
+Emacsからファイルを削除する際に、即座に完全削除するのではなく、システムのゴミ箱に移動させます。
+
+#+begin_src emacs-lisp
+  (setopt delete-by-moving-to-trash t)
+#+end_src
+
+*** native-compの警告を表示しない
+
+ネイティブコンパイル時の非同期な警告やエラーメッセージの表示を抑制します。
+
+#+begin_src emacs-lisp
+  (setopt native-comp-async-report-warnings-errors 'silent)
+#+end_src
+
+*** ガベージコレクション
+
+デフォルト設定ではガベージコレクション (GC) が頻繁に発生することがあるため、閾値を調整します。
+以前は ~gcmh~ パッケージを使用していましたが、タイマーによるGC起動が意図しないメモリ確保を招く場合があるとの情報に基づき、
+[[https://emacsconf.org/2023/talks/gc/][EmacsConf 2023の発表]]で推奨されている ~gc-cons-percentage~ の調整に変更しました。
+
+#+begin_src emacs-lisp
+  (setopt gc-cons-percentage 0.2
+          gc-cons-threshold (* 128 1024 1024))
+#+end_src
+
+*** 長い行を含むファイルの最適化
+
+非常に長い行を含むファイルを開いた際のパフォーマンスを改善します。
+
+#+begin_src emacs-lisp
+  (use-package so-long
+    :init
+    (global-so-long-mode))
+#+end_src
+
+*** 末尾のスペースやタブを可視化
+
+行末の不要な空白文字（スペースやタブ）をバッファ内で視覚的に表示します。
+
+#+begin_src emacs-lisp
+  (setopt show-trailing-whitespace t)
+#+end_src
+
+*** delsel
+
+リージョン（選択範囲）がアクティブな状態で文字を入力した際に、
+選択範囲を削除してから文字を挿入するようにします (いわゆる CUA スタイル)。
+
+#+begin_src emacs-lisp
+  (use-package delsel
+    :ensure nil
+    :config
+    (delete-selection-mode))
+#+end_src
+
+*** tab-bar-mode
+
+フレーム内のウィンドウ構成 (バッファの配置など) を「タブ」として管理する機能です。
+複数の作業コンテキストをタブで切り替えられます。
+
+#+begin_src emacs-lisp
+  (use-package tab-bar
+    :ensure nil
+    :init
+    (tab-bar-mode)
+    (tab-bar-history-mode))
+#+end_src
+
+*** 外部プロセスの読み取り最大値を変更
+
+Emacsが外部プロセスから一度に読み取るデータの最大サイズを1MBに設定します。
+これは、大量の出力を伴うプロセス (LSPサーバーなど) との連携時に、
+プロセス出力が途中で打ち切られるのを防ぐのに役立ちます。
+
+#+begin_src emacs-lisp
+  (setopt read-process-output-max (* 1024 1024))
+#+end_src
+
+*** その他便利設定
+
+Protesilaos Stavrou氏の設定ファイル (dotemacs) から拝借した便利な設定です。
+
+**** [[https://protesilaos.com/emacs/dotemacs][Protesilaos]]
+
+***** キルリングに新しいテキストを追加する前にクリップボードの内容を保存
+
+キルリングに新しいテキストを追加する (killコマンド実行時) 直前に、
+現在のクリップボードの内容をEmacsの内部的な場所に保存します。
+これにより、他のアプリケーションからコピーした内容が、Emacs内でのkill操作によって
+意図せず上書きされてしまうのを防ぎます。
+
+#+begin_src emacs-lisp
+  (setopt save-interprogram-paste-before-kill t)
+#+end_src
+
+*** project.el
+
+Emacs標準のプロジェクト管理機能 ~project.el~ の設定です。
+プロジェクトルートの判定マーカーを追加したり、特定のディレクトリを無視するように設定します。
+
+#+begin_src emacs-lisp
+  (use-package project
+    :config
+    (setopt project-vc-extra-root-markers '(".dir-locals.el" "package.json")))
+#+end_src
+
+*** repeat-mode
+
+~repeat-mode~ は、特定のコマンドを連続して実行する際に、
+プレフィックスキーを毎回入力する必要をなくす機能です。
+例えば ~C-x o~ (other-window) を実行した後、 ~o~ キーだけで
+ウィンドウ間の移動を繰り返せるようになります。
+
+#+begin_src emacs-lisp
+  (use-package repeat
+    :ensure nil
+    :config
+    (repeat-mode))
+#+end_src
+
+*** flymake
+
+Emacs標準のシンタックスチェックフレームワークです。
+リアルタイムでコードのエラーや警告を検出し、表示します。
+類似パッケージに [[https://github.com/flycheck/flycheck][flycheck]] があります。
+
+#+begin_src emacs-lisp
+  (use-package flymake
+    :hook ((prog-mode
+            conf-mode) . flymake-mode))
+#+end_src
+
+*** インデントの基本をスペースに変更
+
+#+begin_src emacs-lisp
+  (use-package simple
+    :ensure nil
+    :init
+    (setopt indent-tabs-mode nil))
+#+end_src
+
+*** gnus
+
+Gnusをメールリーダーとして使用するための設定です。
+実際のメールサーバーの情報などは個人情報が含まれるため ~~/.authinfo.gpg~ や ~~/.gnus~ に記述しています。
+
+#+begin_src emacs-lisp
+  (use-package gnus
+    :ensure nil
+    :after bbdb
+    :init
+    (setopt gnus-select-method '(nnnil "") ; メインのニュースサーバー設定（使用しないのでnnnil）
+            gnus-secondary-select-methods '((nnml "")) ; ローカルに保存
+            send-mail-function 'smtpmail-send-it ; メール送信にsmtpmailを使用
+            message-send-mail-function 'smtpmail-send-it ; メール送信にsmtpmailを使用
+            gnus-message-archive-group "nnml:bogus" ; 送信メールの保存先指定
+            )
+    :config
+    (gnus-demon-init))
+#+end_src
+
+**** [[https://www.gnu.org/software/emacs/manual/html_node/eudc/BBDB.html][bbdb]]
+
+BBDB (The Insidious Big Brother Database) は、Emacs用の連絡先管理システムです。
+
+#+begin_src emacs-lisp
+  (use-package bbdb
+    :init
+    (setopt bbdb-file (locate-user-emacs-file "bbdb")
+            bbdb-mua-auto-action 'create
+            bbdb-mua-action 'create
+            bbdb-mua-pop-up nil
+            bbdb-message-all-addresses t
+            bbdb-message-try-all-headers t
+            bbdb-completion-display-record nil
+            bbdb-complete-mail-allow-cycling t)
+    :config
+    (bbdb-initialize 'gnus 'message)
+    (bbdb-mua-auto-update-init 'gnus 'message)
+    (add-hook 'gnus-startup-hook #'bbdb-insinuate-gnus))
+#+end_src
+
+**** [[https://gitlab.com/wavexx/gnus-desktop-notify.el/][gnus-desktop-notify.el]]
+
+新着メールが届いた際にデスクトップ通知を表示するパッケージです。
+~gnus-demon~ と連携して定期的にメールをチェックし、新着があれば通知します。
+
+#+begin_src emacs-lisp
+  (use-package gnus-desktop-notify
+    :config
+    (gnus-desktop-notify-mode)
+    (gnus-demon-add-rescan))
+#+end_src
+
+**** 折り返し位置の可視化
+
+デフォルトでは72文字目に改行文字が挿入されますが、これを視覚的に示すために
+折り返し位置インジケーターを有効化します。
+
+#+begin_src emacs-lisp
+  (use-package message
+    :ensure nil
+    :hook (message-mode . display-fill-column-indicator-mode))
+#+end_src
+
+*** ediff
+
+~ediff~ は、Emacs標準のファイルまたはバッファ間の差分比較ツールです。
+２つのファイルやバッファの違いを視覚的に表示し、マージ操作を行えます。
+ここでは、差分比較時にウィンドウを垂直に分割するように設定しています。
+
+#+begin_src emacs-lisp
+  (use-package ediff
+    :ensure nil
+    :config
+    (setopt ediff-split-window-function 'split-window-horizontally))
+#+end_src
+
+** テーマ
+
+*** [[https://protesilaos.com/emacs/modus-themes][modus-themes]]
+
+高い可読性とアクセシビリティを重視したEmacs用カラーテーマです。
+
+#+begin_src emacs-lisp
+  (use-package modus-themes
+    :config
+    (modus-themes-select 'modus-operandi-tinted))
+#+end_src
+
+** org
+
+~org-mode~ に関する基本的な設定をしています。
+
+#+begin_src emacs-lisp
+  (use-package org
+      :init
+      (setopt org-return-follows-link t  ; Returnキーでリンク先を開く
+              ))
+#+end_src
+
+*** org-indent
+
+テキストの階層構造に基づいてインデントを自動的に調整します。
+
+#+begin_src emacs-lisp
+  (use-package org-indent
+    :ensure nil
+    :hook (org-mode . org-indent-mode))
+#+end_src
+
+*** [[https://protesilaos.com/emacs/denote][denote]]
+
+シンプルな個人用ノート管理システムです。
+Org、Markdown、プレーンテキストなど複数の形式に対応しています。
+ファイル名に日時・タイトル・タグを含めることで、特別なデータベースなしにノートを整理できます。
+
+#+begin_src emacs-lisp
+  (use-package denote
+    :config
+    ;; テキストモードでもDenoteのリンクをハイライト
+    (add-hook 'text-mode-hook #'denote-fontify-links-mode)
+    ;; DiredでDenoteディレクトリを開いた際にDenote関連の機能を利用可能に
+    (add-hook 'dired-mode-hook #'denote-dired-mode-in-directories)
+    ;; コンテキストメニュー (右クリックメニュー) にDenoteの操作を追加
+    (add-hook 'context-menu-functions #'denote-context-menu)
+
+    ;; バッファ名をDenoteノートのタイトルに合わせて自動的にリネーム
+    (denote-rename-buffer-mode))
+#+end_src
+
+*** [[https://github.com/0x60df/ox-qmd][ox-qmd]] (Qiita投稿用)
+
+orgファイルをmarkdownファイルに変換してくれます。
+組み込みの変換コマンドが存在しますが、ox-qmdでの出力の方がQiitaとの相性が良いです。
+
+#+begin_src emacs-lisp
+  (use-package ox-qmd :defer t)
+#+end_src
+
+** IME (日本語入力メソッド)
+
+*** [[https://github.com/trueroad/tr-emacs-ime-module][tr-ime]] (Windows向け)
+
+Windows環境でOS標準のIME (MS-IMEなど) をEmacs内でスムーズに利用するための設定です。
+
+#+begin_src emacs-lisp
+  (use-package tr-ime
+    :if IS-WINDOWS
+    :config
+    (setopt default-input-method "W32-IME")
+    (tr-ime-standard-install)
+    (w32-ime-initialize))
+#+end_src
+
+*** mozc (Linux/macOS向け)
+
+LinuxやmacOS環境でMozc (Google日本語入力のオープンソース版) をEmacsの入力メソッドとして利用するための設定です。
+[[https://www.kkaneko.jp/tools/server/mozc.html][日本語変換 Mozc の設定，emacs 用の Mozc の設定（Ubuntu 上）]]を参考にしています。
+
+**** 必要なパッケージを導入 (Ubuntuの場合)
+
+#+begin_src shell
+  sudo apt install fcitx-libs-dev # Fcitxライブラリ (開発用)
+  sudo apt install emacs-mozc     # Emacs用Mozcパッケージ
+  fcitx-config-gtk                # Fcitx設定ツール (GUI)
+#+end_src
+
+**** Emacs側の設定
+
+#+begin_src emacs-lisp
+  (use-package mozc
+    :unless IS-WINDOWS
+    :defer t
+    :init
+    (setopt default-input-method "japanese-mozc"))
+#+end_src
+
+** [[https://github.com/minad/corfu][corfu]]
+
+Emacsの補完UIを強化するパッケージです。軽量で、Emacs標準の補完機能と深く統合されています。
+類似パッケージに [[https://github.com/company-mode/company-mode][company-mode]] や [[https://github.com/auto-complete/auto-complete][auto-complete]] があります。
+以前まで ~orderless-flex~ を使用してあいまい検索で補完をしていましたが
+[[https://github.com/minad/corfu/wiki#advanced-variants-for-separator-handling][こちら]]のWikiを見てセパレータを使用するように修正しました。
+
+#+begin_src emacs-lisp
+  (use-package corfu
+    :bind ( :map corfu-map
+            ("RET" . nil)
+            ("<return>" . nil)
+            ("SPC" . corfu-insert-or-escape-separator))
+    :init
+    (setopt corfu-cycle t
+            corfu-auto t
+            corfu-auto-prefix 1
+            corfu-auto-delay 0.0
+            corfu-preselect 'directory
+            corfu-quit-no-match t
+            corfu-on-exact-match 'show)
+
+    (defun corfu-insert-or-escape-separator ()
+      "Rotate prompt between inserting, escaping and removing the separator.
+  An alternative to `corfu-insert-separator', useful in cases where including the
+  separator in the query is important, and the user wants a single bind for
+  everything. It can be called repeatedly, and will do, in order (starting from a
+  prompt without any separators):
+
+  1. Insert the separator character at prompt end.
+  2. Insert a backslash character before the inserted separator, to treat it as
+     part of the prompt instead of as a split point for components.
+  3. Remove the separator and backslash.
+
+  The sequence will loop to 1 if called further, allowing to fix accidental
+  changes to the prompt. Note this function can remove the separator character."
+      (interactive)
+      (if (char-equal (char-before) corfu-separator)
+          (if (char-equal (char-before (1- (point))) ?\\)
+              (save-excursion (delete-char -2))                   ;; Case 3
+            (save-excursion (backward-char 1) (insert-char ?\\))) ;; Case 2
+        (call-interactively #'corfu-insert-separator)))           ;; Case 1
+
+    (global-corfu-mode))
+#+end_src
+
+*** corfu-popupinfo
+
+補完候補の追加情報（ドキュメントや型情報など）をポップアップ表示する拡張機能です。
+
+#+begin_src emacs-lisp
+  (use-package corfu-popupinfo
+    :ensure nil
+    :after corfu
+    :hook (corfu-mode . corfu-popupinfo-mode))
+#+end_src
+
+*** corfu-history
+
+Corfuで選択した補完候補の履歴を保存し、次回の補完時に優先的に表示します。
+~savehist-mode~ と連携することで、Emacsセッション間で履歴が永続化されます。
+
+#+begin_src emacs-lisp
+  (use-package corfu-history
+    :ensure nil
+    :after corfu
+    :init
+    (corfu-history-mode)
+    (with-eval-after-load 'savehist
+      (add-to-list 'savehist-additional-variables 'corfu-history)))
+#+end_src
+
+*** corfu向けEmacs標準機能の設定
+
+Corfuをより快適に利用するための、Emacs標準機能に関する設定です。
+
+#+begin_src emacs-lisp
+  (use-package emacs
+    :ensure nil
+    :config
+    ;; TABキーの挙動を設定: インデントの後に補完を試みる (corfuのフックと重複するが、汎用的な設定としてここにも記述)
+    (setopt tab-always-indent 'complete))
+#+end_src
+
+*** [[https://github.com/minad/cape][cape]] (Completion At Point Extensions)
+
+Emacsの標準補完インターフェース ~completion-at-point-functions~ (CAPF) を拡張するパッケージ群です。
+これにより、CorfuやCompanyなどの補完UIで利用できる補完ソース (候補を提供する関数) を簡単に追加・管理できます。
+
+#+begin_src emacs-lisp
+  (use-package cape
+    :config
+    (advice-add 'eglot-completion-at-point :around #'cape-wrap-buster)
+    (advice-add 'eglot-completion-at-point :around #'cape-wrap-nonexclusive)
+    (advice-add 'lsp-completion-at-point :around #'cape-wrap-buster)
+    (advice-add 'lsp-completion-at-point :around #'cape-wrap-nonexclusive)
+    (advice-add 'lsp-completion-at-point :around #'cape-wrap-noninterruptible)
+
+    (add-hook 'completion-at-point-functions #'cape-dabbrev)
+    (add-hook 'completion-at-point-functions #'cape-file)
+    (add-hook 'completion-at-point-functions #'cape-keyword)
+    (add-hook 'completion-at-point-functions #'cape-elisp-block)
+    (add-hook 'completion-at-point-functions #'tempel-complete))
+#+end_src
+
+*** [[https://codeberg.org/akib/emacs-corfu-terminal][corfu-terminal]]
+
+Corfuはデフォルトではターミナル環境 (CUI) でのポップアップ表示に対応していません。
+このパッケージを導入することで、ターミナル上でもCorfuの補完候補を適切に表示できるようになります。
+Emacs 31以降では、Emacs本体のchild frame機能がターミナルでも利用可能になるため、このパッケージは不要になる見込みです。
+
+#+begin_src emacs-lisp
+  (use-package corfu-terminal
+    :if (version< emacs-version "31")
+    :after corfu
+    :unless (display-graphic-p)
+    :config
+    (corfu-terminal-mode))
+#+end_src
+
+*** [[https://github.com/minad/corfu/wiki#combined-sorting][Combined sorting]] (Corfu補完候補の複合ソート)
+
+Corfuの補完候補の並び順を、LSPサーバーなどが提供する ~display-sort-function~ と
+Corfu自体の ~corfu-sort-function~ の両方を考慮して決定するカスタムソート関数です。
+
+#+begin_src emacs-lisp
+  (with-eval-after-load 'corfu
+    (defun my-corfu-combined-sort (candidates)
+      "display-sort-function と corfu-sort-function の両方を使用して候補 (CANDIDATES) をソートします。"
+      (let ((candidates
+             (let ((display-sort-func (corfu--metadata-get 'display-sort-function)))
+               (if display-sort-func
+                   (funcall display-sort-func candidates)
+                 candidates))))
+        (if corfu-sort-function
+            (funcall corfu-sort-function candidates)
+          candidates)))
+
+    ;; Corfuのデフォルトソート関数を上記カスタム関数で上書き
+    (setopt corfu-sort-override-function #'my-corfu-combined-sort))
+#+end_src
+
+** [[https://github.com/radian-software/prescient.el][prescient.el]]
+
+prescientは補完候補の並び替えやフィルター機能を提供します。
+gnus等でorderlessが効かないシチュエーションがあったため、絞り込みにもprescientを使用しています。
+
+#+begin_src emacs-lisp
+  (use-package prescient
+    :config
+    (setopt completion-styles '(prescient basic)
+            completion-category-defaults nil
+            completion-category-overrides '((eglot (styles prescient basic))
+                                            (eglot-capf (styles prescient basic))))
+
+    (with-eval-after-load 'migemo
+      (defun my/prescient-regexp-regexp-advice (orig-fun query &rest args)
+        "Advice function to replace QUERY with (migemo-get-pattern query)."
+        (let ((migemo-query (migemo-get-pattern query)))
+          (apply orig-fun migemo-query args)))
+      (advice-add 'prescient-regexp-regexp :around #'my/prescient-regexp-regexp-advice))
+
+    (prescient-persist-mode))
+#+end_src
+
+*** vertico-prescient
+
+prescientをverticoに適用します。
+
+#+begin_src emacs-lisp
+  (use-package vertico-prescient
+    :after (vertico prescient)
+    :config
+    (vertico-prescient-mode))
+#+end_src
+
+*** corfu-prescient
+
+prescientをcorfuに適用します。
+
+#+begin_src emacs-lisp
+  (use-package corfu-prescient
+    :after (corfu prescient)
+    :config
+    (corfu-prescient-mode))
+#+end_src
+
+** [[https://github.com/minad/vertico][vertico]]
+
+ミニバッファの補完UIを強化するパッケージです。
+~M-x~ やファイル検索などのミニバッファ操作で、候補を縦型リストで表示します。
+Corfuがバッファ内のテキスト補完を担当するのに対し、Verticoはミニバッファでの補完を担当します。
+
+#+begin_src emacs-lisp
+  (use-package vertico
+    :config
+    (setopt vertico-resize t)
+    (vertico-mode))
+#+end_src
+
+*** Emacs標準機能の設定 (vertico向け)
+
+#+begin_src emacs-lisp
+  (use-package emacs
+    :ensure nil
+    :init
+    (setopt enable-recursive-minibuffers t
+            read-extended-command-predicate #'command-completion-default-include-p
+            minibuffer-prompt-properties '(read-only t cursor-intangible t face minibuffer-prompt))
+
+    (context-menu-mode))
+#+end_src
+
+*** vertico-repeat
+
+Verticoの拡張機能の一つで、直前に実行したミニバッファコマンドを再度呼び出せるようにします。
+
+#+begin_src emacs-lisp
+  (use-package vertico-repeat
+    :ensure nil
+    :after vertico
+    :bind ("M-R" . vertico-repeat)
+    :hook (minibuffer-setup . vertico-repeat-save))
+#+end_src
+
+*** vertico-directory
+
+Verticoの拡張機能の一つで、ディレクトリ補完を強化します。
+
+#+begin_src emacs-lisp
+  (use-package vertico-directory
+    :ensure nil
+    :after vertico
+    :bind ( :map vertico-directory-map
+            ("C-h" . vertico-directory-up))
+    :hook (rfn-eshadow-update-overlay . vertico-directory-tidy))
+#+end_src
+
+*** vertico-multiform
+
+Verticoの拡張機能の一つで、補完UIの表示形式をカテゴリごとにカスタマイズできます。
+
+#+begin_src emacs-lisp
+  (use-package vertico-multiform
+    :ensure nil
+    :after vertico
+    :config
+    (setopt vertico-multiform-categories
+            '((file (:keymap . vertico-directory-map))))
+    (vertico-multiform-mode))
+#+end_src
+
+*** vertico-mouse
+
+Verticoの拡張機能の一つで、マウス操作による補完候補の選択やスクロールを可能にします。
+
+#+begin_src emacs-lisp
+  (use-package vertico-mouse
+    :ensure nil
+    :after vertico
+    :config
+    (vertico-mouse-mode))
+#+end_src
+
+** AI (人工知能関連)
+
+*** [[https://github.com/karthink/gptel][gptel]] (LLMフロントエンド)
+
+Emacsから大規模言語モデル (LLM) を利用するための汎用インターフェースです。
+OpenAIのGPTモデル、GoogleのGeminiモデル、ローカルで動作するモデルなど、多様なバックエンドに対応しています。
+ここでは、GitHub Copilotの認証情報を利用してGeminiモデルを使用する設定例を示します。
+
+#+begin_src emacs-lisp :tangle no
+  (use-package gptel
+    :config
+    (setopt gptel-model 'gpt-4.1 ;; 使用するLLMのモデルを指定
+            ;; gptelのバックエンドとしてGitHub Copilotの認証情報を使用する設定
+            gptel-backend (gptel-make-gh-copilot "Copilot")
+            gptel-default-mode 'org-mode
+            gptel-curl-file-size-threshold 0)
+
+    (require 'gptel-integrations))
+#+end_src
+
+**** [[https://github.com/lakkiy/gptel-commit][gptel-commit]]
+
+~gptel-commit~ は、Gitコミットメッセージの自動生成を支援するためのパッケージです。
+
+#+begin_src emacs-lisp :tangle no
+  (use-package gptel-commit
+    :ensure t
+    :after (gptel magit)
+    :custom
+    (gptel-commit-stream t)
+    :config
+    (with-eval-after-load 'magit
+      (define-key git-commit-mode-map (kbd "C-c g") #'gptel-commit)
+      (define-key git-commit-mode-map (kbd "C-c G") #'gptel-commit-rationale))
+
+    (advice-add 'gptel-commit :around
+                (lambda (orig-fun &rest args)
+                  (let ((gptel-model "gpt-4.1"))
+                    (apply orig-fun args))))
+
+    (advice-add 'gptel-commit-rationale :around
+                (lambda (orig-fun &rest args)
+                  (let ((gptel-model "gpt-4.1"))
+                    (apply orig-fun args)))))
+#+end_src
+
+*** [[https://github.com/copilot-emacs/copilot.el][copilot.el]]
+
+GitHub Copilotは、AIによるコード補完・生成サービスです。
+EmacsからCopilotを利用するには、~copilot.el~パッケージを使います。以下は基本的な設定例です。
+
+#+begin_src emacs-lisp :tangle no
+  (use-package copilot
+    :vc (:url "https://github.com/copilot-emacs/copilot.el"
+              :rev :newest
+              :branch "main")
+    :bind ( :map copilot-completion-map
+            ("M-RET" . copilot-accept-completion))
+    :hook ((prog-mode . copilot-mode)
+           (text-mode . copilot-mode)
+           (conf-mode . copilot-mode)))
+#+end_src
+
+** [[https://github.com/minad/consult][consult]] (多機能検索・絞り込みコマンド群)
+
+~find-file~、~switch-to-buffer~、~grep~ などの標準コマンドを強化し、
+VerticoやSelectrumといった補完UIと連携して高度な検索・絞り込み機能を提供します。
+
+#+begin_src emacs-lisp
+  ;; Example configuration for Consult
+  (use-package consult
+    ;; Replace bindings. Lazily loaded by `use-package'.
+    :bind (;; C-c bindings in `mode-specific-map'
+           ("C-c M-x" . consult-mode-command)
+           ("C-c h" . consult-history)
+           ("C-c k" . consult-kmacro)
+           ("C-c m" . consult-man)
+           ("C-c i" . consult-info)
+           ([remap Info-search] . consult-info)
+           ;; C-x bindings in `ctl-x-map'
+           ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
+           ("C-x b" . consult-buffer)                ;; orig. switch-to-buffer
+           ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
+           ("C-x 5 b" . consult-buffer-other-frame)  ;; orig. switch-to-buffer-other-frame
+           ("C-x t b" . consult-buffer-other-tab)    ;; orig. switch-to-buffer-other-tab
+           ("C-x r b" . consult-bookmark)            ;; orig. bookmark-jump
+           ("C-x p b" . consult-project-buffer)      ;; orig. project-switch-to-buffer
+           ;; Custom M-# bindings for fast register access
+           ("M-#" . consult-register-load)
+           ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
+           ("C-M-#" . consult-register)
+           ;; Other custom bindings
+           ("M-y" . consult-yank-pop)                ;; orig. yank-pop
+           ;; M-g bindings in `goto-map'
+           ("M-g e" . consult-compile-error)
+           ("M-g f" . consult-flymake)               ;; Alternative: consult-flycheck
+           ("M-g g" . consult-goto-line)             ;; orig. goto-line
+           ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
+           ("M-g o" . consult-outline)               ;; Alternative: consult-org-heading
+           ("M-g m" . consult-mark)
+           ("M-g k" . consult-global-mark)
+           ("M-g i" . consult-imenu)
+           ("M-g I" . consult-imenu-multi)
+           ;; M-s bindings in `search-map'
+           ("M-s d" . consult-fd)
+           ("M-s c" . consult-locate)
+           ("M-s g" . consult-grep)
+           ("M-s G" . consult-git-grep)
+           ("M-s r" . consult-ripgrep)
+           ("M-s l" . consult-line)
+           ("M-s L" . consult-line-multi)
+           ("M-s k" . consult-keep-lines)
+           ("M-s u" . consult-focus-lines)
+           ;; Isearch integration
+           ("M-s e" . consult-isearch-history)
+           :map isearch-mode-map
+           ("M-e" . consult-isearch-history)         ;; orig. isearch-edit-string
+           ("M-s e" . consult-isearch-history)       ;; orig. isearch-edit-string
+           ("M-s l" . consult-line)                  ;; needed by consult-line to detect isearch
+           ("M-s L" . consult-line-multi)            ;; needed by consult-line to detect isearch
+           ;; Minibuffer history
+           :map minibuffer-local-map
+           ("M-s" . consult-history)                 ;; orig. next-matching-history-element
+           ("M-r" . consult-history))                ;; orig. previous-matching-history-element
+
+    ;; Enable automatic preview at point in the *Completions* buffer. This is
+    ;; relevant when you use the default completion UI.
+    :hook (completion-list-mode . consult-preview-at-point-mode)
+
+    ;; The :init configuration is always executed (Not lazy)
+    :init
+
+    ;; Tweak the register preview for `consult-register-load',
+    ;; `consult-register-store' and the built-in commands.  This improves the
+    ;; register formatting, adds thin separator lines, register sorting and hides
+    ;; the window mode line.
+    (advice-add #'register-preview :override #'consult-register-window)
+    (setopt register-preview-delay 0.5)
+
+    ;; Use Consult to select xref locations with preview
+    (setopt xref-show-xrefs-function #'consult-xref
+            xref-show-definitions-function #'consult-xref)
+
+    ;; Configure other variables and modes in the :config section,
+    ;; after lazily loading the package.
+    :config
+
+    ;; Optionally configure preview. The default value
+    ;; is 'any, such that any key triggers the preview.
+    ;; (setopt consult-preview-key 'any)
+    ;; (setopt consult-preview-key "M-.")
+    ;; (setopt consult-preview-key '("S-<down>" "S-<up>"))
+    ;; For some commands and buffer sources it is useful to configure the
+    ;; :preview-key on a per-command basis using the `consult-customize' macro.
+    (consult-customize
+     consult-theme :preview-key '(:debounce 0.2 any)
+     consult-ripgrep consult-git-grep consult-grep consult-man
+     consult-bookmark consult-recent-file consult-xref
+     consult--source-bookmark consult--source-file-register
+     consult--source-recent-file consult--source-project-recent-file
+     ;; :preview-key "M-."
+     :preview-key '(:debounce 0.4 any))
+
+    ;; Optionally configure the narrowing key.
+    ;; Both < and C-+ work reasonably well.
+    (setopt consult-narrow-key "<") ;; "C-+"
+
+    ;; Optionally make narrowing help available in the minibuffer.
+    ;; You may want to use `embark-prefix-help-command' or which-key instead.
+    ;; (keymap-set consult-narrow-map (concat consult-narrow-key " ?") #'consult-narrow-help)
+    )
+#+end_src
+
+*** 現在のディレクトリのみgrepで検索するコマンド
+
+~consult-ripgrep~ や ~consult-grep~ を、プロジェクトルートではなくカレントディレクトリ (~default-directory~) のみを対象として実行するカスタムコマンドです。
+現在開いているファイルのディレクトリ配下のみを検索したい場合に便利です。
+
+#+begin_src emacs-lisp
+  ;; consult-ripgrep をカレントディレクトリのみを対象として実行
+  (defun consult-ripgrep-current-directory ()
+    (interactive)
+    (consult-ripgrep default-directory))
+
+  ;; consult-grep をカレントディレクトリのみを対象として実行
+  (defun consult-grep-current-directory ()
+    (interactive)
+    (consult-grep default-directory))
+
+  ;; M-s R でカレントディレクトリ ripgrep
+  (define-key search-map (kbd "R") #'consult-ripgrep-current-directory)
+  ;; M-s M-g でカレントディレクトリ grep (元の M-s g はプロジェクト全体 grep)
+  (define-key search-map (kbd "M-g") #'consult-grep-current-directory)
+#+end_src
+
+*** [[https://github.com/karthink/consult-dir][consult-dir]]
+
+ディレクトリのナビゲーションと管理を支援するパッケージです。
+
+#+begin_src emacs-lisp
+  (use-package consult-dir
+    :bind (("C-x C-d" . consult-dir)
+           :map minibuffer-local-completion-map
+           ("C-x C-d" . consult-dir)
+           ("C-x C-j" . consult-dir-jump-file)))
+#+end_src
+
+** [[https://github.com/minad/marginalia][marginalia]] (補完候補への注釈追加)
+
+ミニバッファでの補完候補に、ファイルタイプ、日付、Git情報、関数の引数リストなどの詳細な注釈 (アノテーション) を追加表示します。
+これにより、補完候補の選択がより容易になります。
+
+#+begin_src emacs-lisp
+  ;; Enable rich annotations using the Marginalia package
+  (use-package marginalia
+    ;; Bind `marginalia-cycle' locally in the minibuffer.  To make the binding
+    ;; available in the *Completions* buffer, add it to the
+    ;; `completion-list-mode-map'.
+    :bind ( :map minibuffer-local-map
+            ("M-A" . marginalia-cycle))
+
+    ;; The :init section is always executed.
+    :init
+
+    ;; Marginalia must be activated in the :init section of use-package such that
+    ;; the mode gets enabled right away. Note that this forces loading the
+    ;; package.
+    (marginalia-mode))
+#+end_src
+
+** [[https://github.com/oantolin/embark][embark]] (コンテキストアクション実行)
+
+VerticoやConsultなどの補完候補や、バッファ内の様々な対象 (ファイル名、URL、シンボルなど) に対して、
+コンテキストに応じた多様なアクション (開く、コピーする、定義を調べるなど) を実行できるようにするパッケージです。
+
+#+begin_src emacs-lisp
+  (use-package embark
+    :bind
+    (("C-." . embark-act)         ;; pick some comfortable binding
+     ("C-;" . embark-dwim)        ;; good alternative: M-.
+     ("C-h B" . embark-bindings)) ;; alternative for `describe-bindings'
+
+    :init
+
+    ;; Optionally replace the key help with a completing-read interface
+    (setopt prefix-help-command #'embark-prefix-help-command)
+
+    ;; Show the Embark target at point via Eldoc. You may adjust the
+    ;; Eldoc strategy, if you want to see the documentation from
+    ;; multiple providers. Beware that using this can be a little
+    ;; jarring since the message shown in the minibuffer can be more
+    ;; than one line, causing the modeline to move up and down:
+
+    ;; (add-hook 'eldoc-documentation-functions #'embark-eldoc-first-target)
+    ;; (setopt eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
+
+    ;; Add Embark to the mouse context menu. Also enable `context-menu-mode'.
+    ;; (context-menu-mode 1)
+    ;; (add-hook 'context-menu-functions #'embark-context-menu 100)
+
+    :config
+
+    ;; Hide the mode line of the Embark live/completions buffers
+    (add-to-list 'display-buffer-alist
+                 '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                   nil
+                   (window-parameters (mode-line-format . none)))))
+#+end_src
+
+*** embark-consult
+
+EmbarkとConsultを連携させ、Consultの検索結果などからEmbarkのアクションを実行できるようにします。
+例えば、 ~consult-buffer~ で選択したバッファに対して「閉じる」「キルする」などのアクションを Embark経由で実行できます。
+
+#+begin_src emacs-lisp
+  (use-package embark-consult
+    :hook (embark-collect-mode . consult-preview-at-point-mode))
+#+end_src
+
+** [[https://github.com/minad/tempel][tempel]] (軽量スニペットエンジン)
+
+Emacs用の軽量なテンプレート (スニペット) 展開パッケージです。
+類似パッケージに [[https://github.com/joaotavora/yasnippet][yasnippet]] がありますが、Tempelはよりシンプルな実装を目指しています。
+
+#+begin_src emacs-lisp
+  (use-package tempel
+    :bind (("M-+" . tempel-complete) ;; カーソル位置でスニペット候補を補完・展開 ( `tempel-expand` の代替としても)
+           ("M-*" . tempel-insert))) ;; 指定したスニペットを挿入
+#+end_src
+
+*** [[https://github.com/Crandel/tempel-collection][tempel-collection]]
+
+Tempel用のスニペット定義を集めたパッケージです。様々なプログラミング言語やモードに対応したスニペットが含まれています。
+
+#+begin_src emacs-lisp
+  (use-package tempel-collection
+    :after tempel)
+#+end_src
+
+** Git
+
+Git関連の操作をEmacsから快適に行うためのパッケージ設定です。
+
+*** [[https://magit.vc/][magit]]
+
+Emacs上で高機能なGitクライアントを提供するパッケージです。
+コミット、ブランチ操作、差分確認など、ほとんどのGit操作をEmacs内で完結できます。
+
+#+begin_src emacs-lisp
+  (use-package magit
+    :config
+    (require 'magit-extras)) ; Magitの追加機能 (magit-plusなど) をロード
+#+end_src
+
+*** [[https://github.com/dgutov/diff-hl][diff-hl]]
+
+ウィンドウのフリンジ（左端または右端の余白部分）に、Gitリポジトリでの未コミットの変更箇所 (追加・変更・削除行) を視覚的に表示します。
+
+#+begin_src emacs-lisp
+  (use-package diff-hl
+    ;; Magitのバッファ更新前後にdiff-hlも更新
+    :hook ((magit-pre-refresh . diff-hl-magit-pre-refresh)
+           (magit-post-refresh . diff-hl-magit-post-refresh))
+    :init
+    (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
+    (global-diff-hl-mode)                 ; diff-hlモードをグローバルに有効化
+    (global-diff-hl-show-hunk-mouse-mode) ; マウスオーバーで変更差分 (hunk) を表示
+    (diff-hl-margin-mode))                ; フリンジではなくマージン領域に差分表示
+#+end_src
+
+*** [[https://github.com/pkryger/difftastic.el][difftastic.el]]
+
+Emacsで[[https://github.com/wilfred/difftastic][difftastic]]を使用できるようにします。通常のコマンドとしても使用でき、magitにも統合させています。
+
+#+begin_src emacs-lisp
+  (use-package difftastic
+    :config
+    (difftastic-bindings-mode))
+#+end_src
+
+** フォントの設定
+
+私は[[https://github.com/protesilaos/fontaine][fontaine]]を使用して[[https://github.com/yuru7/PlemolJP/releases][PlemolJP]]と[[https://fonts.google.com/specimen/IBM+Plex+Sans+JP][IBM Plex Sans JP]]を設定しています。
+
+#+begin_src emacs-lisp
+  (use-package fontaine
+    :config
+    (cond (IS-LINUX
+           (setopt fontaine-presets
+                   '((regular
+                      :default-family "PlemolJP"
+                      :fixed-pitch-family "PlemolJP"
+                      :variable-pitch-family "IBM Plex Sans JP"
+                      :italic-family "PlemolJP")
+                     (large
+                      :default-family "PlemolJP"
+                      :variable-pitch-family "IBM Plex Sans JP"))))
+
+          (IS-WINDOWS
+           (setopt fontaine-presets
+                   '((regular
+                      :default-family "PlemolJP"
+                      :fixed-pitch-family "PlemolJP"
+                      :variable-pitch-family "IBM Plex Sans JP"
+                      :italic-family "PlemolJP")
+                     (large
+                      :default-family "PlemolJP"
+                      :variable-pitch-family "IBM Plex Sans JP")))))
+
+    (fontaine-set-preset (or (fontaine-restore-latest-preset) 'regular))
+    (add-hook 'kill-emacs-hook #'fontaine-store-latest-preset))
+#+end_src
+
+** modeline
+
+*** [[https://github.com/tarsius/minions][minions]]
+
+デフォルトのモードラインでは各言語のメジャーモードやマイナーモードが全て表示されますが、
+こちらのパッケージを導入することで、マイナーモードがハンバーガーメニューで表示され、
+マウスクリックで表示されるようになります。
+
+#+begin_src emacs-lisp
+  (use-package minions
+    :init
+    (minions-mode))
+#+end_src
+
+*** [[https://github.com/TeMPOraL/nyan-mode][nyan-mode]]
+
+Emacsのモードラインにニャンコが表示され、バッファ内のカーソル位置に応じてニャンコが進むアニメーションを表示します。
+
+#+begin_src emacs-lisp
+  (use-package nyan-mode
+    :config
+    (setopt nyan-bar-length 24
+            nyan-animate-nyancat t)
+    (nyan-mode))
+#+end_src
+
+** [[https://github.com/justbur/emacs-which-key][which-key]] (キーバインドガイド)
+
+プレフィックスキー (例: ~C-x~) に続くキーバインドの候補をポップアップ表示し、キー操作をガイドします。
+複雑なキーバインドを覚える助けになります。
+
+#+begin_src emacs-lisp
+  (use-package which-key
+    :config
+    (which-key-mode))
+#+end_src
+
+** undo (アンドゥ関連)
+
+undo-fu、undo-fu-repeatを使用していましたが、Emacs組み込みのUndo機能が改善されたため
+組み込みのUndoを使用するように変更しました。
+
+*** [[https://github.com/casouri/vundo][vundo]] (アンドゥ履歴の可視化)
+
+アンドゥ履歴をツリー形式で視覚的に表示し、特定の編集状態へ簡単に戻れるようにするパッケージです。
+代表的な類似パッケージに [[https://elpa.gnu.org/packages/undo-tree.html][undo-tree]] がありますが、vundoはよりシンプルな実装を目指しています。
+
+#+begin_src emacs-lisp
+  (use-package vundo)
+#+end_src
+
+** [[https://github.com/purcell/emacs-reformatter][reformatter]] (コードフォーマッタ統合)
+
+各種コードフォーマッタ (Prettier, Black, gofmtなど) を統一的なインターフェースで利用可能にするパッケージです。
+ここでは、TypeScriptおよびJSX/TSXファイル保存時にPrettierを自動実行する設定例を示します。
+
+#+begin_src emacs-lisp
+  (use-package reformatter
+    :hook (((typescript-ts-mode
+             tsx-ts-mode) . prettier-format-on-save-mode)
+           ((csharp-mode
+             csharp-ts-mode) . csharpier-format-on-save-mode))
+    :config
+    (reformatter-define prettier-format
+      :program "npx"
+      :args `("prettier" "--stdin-filepath" ,buffer-file-name)
+      :lighter " PrettierFmt")
+
+    (reformatter-define csharpier-format
+      :program "csharpier"
+      :args '("format" "--write-stdout")
+      :lighter " CSharpierFmt"))
+#+end_src
+
+*** [[https://github.com/purcell/sqlformat][sqlformat]]
+
+reformatterを使用したSQL用のフォーマットパッケージです。
+
+#+begin_src emacs-lisp
+  (use-package sqlformat
+    :init
+    (setopt sqlformat-command 'sql-formatter
+            sqlformat-args '("-l" "tsql")))
+#+end_src
+
+** [[https://github.com/casouri/expreg][expreg]] (選択範囲の段階的拡張)
+
+カーソル位置から意味的な単位 (単語、括弧内、S式など) で選択範囲を段階的に拡張するパッケージです。
+類似パッケージに [[https://github.com/magnars/expand-region.el][expand-region]] がありますが、expregはよりシンプルな実装です。
+
+#+begin_src emacs-lisp
+  (use-package expreg
+    :defer t
+    :bind ("C-=" . expreg-expand))
+#+end_src
+
+** [[https://github.com/AmaiKinono/puni][puni]] (構造的操作ユーティリティ)
+
+括弧、クォート、タグなどのペア構造を操作するためのユーティリティ群を提供するパッケージです。
+ペアの選択、削除、入れ替え、ラップなどが簡単に行えます。
+[[https://qiita.com/akirak/items/11dafdf89e32d34f3fc9#puni][こちらの記事 (Qiita)]]でも紹介されています。
+類似パッケージに [[https://github.com/Fuco1/smartparens][smartparens]] があります。
+
+#+begin_src emacs-lisp
+  (use-package puni
+    :config
+    (puni-global-mode))
+#+end_src
+
+** treesit (Tree-sitter関連)
+
+Tree-sitter (インクリメンタルな構文解析ライブラリ) をEmacsで利用するための設定です。
+より正確なシンタックスハイライト、インデント、コードナビゲーションなどが可能になります。
+
+*** [[https://github.com/kiennq/treesit-langs][treesit-langs]] (Tree-sitter文法管理)
+
+各種プログラミング言語用のTree-sitter文法 (パーサー) のダウンロードと管理を容易にするパッケージです。
+Emacs 29以降でTree-sitterが標準サポートされたことに伴い、公式に近い形でメンテナンスされています。
+最新の文法バンドルバージョンは [[https://github.com/emacs-tree-sitter/tree-sitter-langs/tags][こちら]] から確認できます。
+
+#+begin_src emacs-lisp
+  (use-package treesit-langs
+    :vc (treesit-langs :url "https://github.com/emacs-tree-sitter/treesit-langs" :rev :newest)
+    :config
+    ;; 各メジャーモードでTree-sitterを利用するための基本的な設定を自動で行う
+    (treesit-langs-major-mode-setup))
+#+end_src
+
+*** [[https://github.com/renzmann/treesit-auto][treesit-auto]]
+
+Tree-sitter対応のメジャーモードを自動的に切り替えるパッケージです。
+
+#+begin_src emacs-lisp
+  (use-package treesit-auto
+    :config
+    (global-treesit-auto-mode))
+#+end_src
+
+*** [[https://github.com/emacs-tree-sitter/treesit-fold][treesit-fold]]
+
+Tree-sitterの構文解析情報を利用して、コードの折りたたみ (コードフォールディング) を実現するパッケージです。
+
+#+begin_src emacs-lisp
+  (use-package treesit-fold
+    :config
+    (global-treesit-fold-mode)
+    (global-treesit-fold-indicators-mode))
+#+end_src
+
+** [[https://github.com/akicho8/string-inflection][string-inflection]] (単語ケース変換)
+
+カーソル下の単語を、スネークケース (snake_case)、キャメルケース (camelCase)、
+アッパーケース (UPPER_CASE) などの間で循環的に変換します。
+プログラミング言語の命名規則に合わせて素早く変換するのに便利です。
+
+#+begin_src emacs-lisp
+  (use-package string-inflection
+    :init
+    ;; メジャーモードに応じて変換スタイルを自動で切り替える関数
+    (defun my-string-inflection-cycle-auto ()
+      "メジャーモードに応じて単語のケーススタイルを循環変換します。"
+      (interactive)
+      (cond
+       ;; Emacs Lispモードの場合
+       ((eq major-mode 'emacs-lisp-mode)
+        (string-inflection-all-cycle)) ; 全てのスタイルを循環
+       ;; Pythonモードの場合
+       ((eq major-mode 'python-mode)
+        (string-inflection-python-style-cycle)) ; Pythonスタイル (snake_case, CamelCaseなど)
+       ;; Javaモードの場合
+       ((eq major-mode 'java-mode)
+        (string-inflection-java-style-cycle)) ; Javaスタイル (camelCase, PascalCaseなど)
+       ;; Elixirモードの場合
+       ((eq major-mode 'elixir-mode)
+        (string-inflection-elixir-style-cycle)) ; Elixirスタイル
+       (t
+        ;; デフォルト (Rubyスタイル)
+        (string-inflection-ruby-style-cycle)))))
+#+end_src
+
+** [[https://github.com/lorniu/go-translate][gt]] (インライン翻訳)
+
+Emacs内でテキストを選択し、Google翻訳などの外部サービスを利用して翻訳結果を表示します。
+
+#+begin_src emacs-lisp
+  (use-package gt
+    :defer t
+    :config
+    ;; 翻訳対象言語と言語のペアを設定 (英語 <-> 日本語)
+    (setopt gt-langs '(en ja))
+    ;; デフォルトの翻訳設定
+    (setopt gt-default-translator
+            (gt-translator
+             ;; 翻訳対象のテキスト取得方法: 現在のバッファから段落単位で取得
+             :taker   (gt-taker :text 'buffer :pick 'paragraph)
+             ;; 使用する翻訳エンジン: Bing翻訳
+             :engines (list (gt-bing-engine))
+             ;; 翻訳結果の表示方法: 新しいバッファに表示
+             :render  (gt-buffer-render))))
+#+end_src
+
+** [[https://github.com/emacs-jp/migemo][migemo]] (ローマ字による日本語検索)
+
+ローマ字入力で日本語のインクリメンタル検索を可能にするパッケージです。
+別途 ~cmigemo~ などのMigemo辞書エンジンが必要です。
+Windows環境ではScoop経由で ~cmigemo~ をインストールしていることを想定しています。
+
+#+begin_src emacs-lisp
+  (use-package migemo
+    :init
+    ;; Migemoコマンドの設定 (cmigemoをデフォルトとして使用)
+    (setopt migemo-command "cmigemo")
+    (setopt migemo-options '("-q" "--emacs")) ; cmigemoへのオプション
+
+    ;; Migemo辞書のパス設定 (環境に合わせて調整が必要)
+    (when IS-WINDOWS
+      (setopt migemo-dictionary
+              ;; 環境に合わせてパスを変更してください
+              ;; Scoopでcmigemoをインストールした場合の例:
+              ;; "C:/Users/<USERNAME>/scoop/apps/cmigemo/current/cmigemo-mingw64/share/migemo/utf-8/migemo-dict"
+              (expand-file-name "scoop/apps/cmigemo/current/cmigemo-mingw64/share/migemo/utf-8/migemo-dict"
+                                (getenv "USERPROFILE"))))
+    (when IS-LINUX
+      (setopt migemo-dictionary
+              "/usr/share/cmigemo/utf-8/migemo-dict")) ; Linuxでの辞書パス例
+
+    (setopt migemo-user-dictionary nil)   ; ユーザー辞書は使用しない
+    (setopt migemo-regex-dictionary nil)  ; 正規表現辞書は使用しない
+    (setopt migemo-coding-system 'utf-8-unix) ; 辞書のエンコーディング
+
+    :config
+    (migemo-init)) ; Migemoを初期化
+#+end_src
+
+** [[https://github.com/editorconfig/editorconfig-emacs][editorconfig]] (.editorconfig サポート)
+
+EditorConfigは、プロジェクトごとに異なるコードスタイルを設定するためのファイル（ ~.editorconfig~ ）をサポートします。
+
+#+begin_src emacs-lisp
+  (use-package editorconfig
+    :config
+    (editorconfig-mode))
+#+end_src
+
+** [[https://github.com/mhayashi1120/Emacs-wgrep][emacs-wgrep]] (Grep結果の直接編集)
+
+~grep~ や ~rg~ などの検索結果を直接編集できるようにするパッケージです。
+このパッケージを使用すると、検索結果のバッファ内で直接編集し、変更を元のファイルに反映させることができます。
+
+#+begin_src emacs-lisp
+  (use-package wgrep)
+#+end_src
+
+** [[https://protesilaos.com/emacs/spacious-padding][spacious-padding]]
+
+画面の余白を付けてくれます。カスタマイズ変数を調整することでモードラインも良い感じにしてくれます。
+
+#+begin_src emacs-lisp
+  (use-package spacious-padding
+    :config
+    (setopt spacious-padding-widths
+            '( :internal-border-width 32
+               :header-line-width 4
+               :mode-line-width 6
+               :tab-width 4
+               :right-divider-width 32
+               :scroll-bar-width 0))
+
+    ;; Read the doc string of `spacious-padding-subtle-mode-line' as it
+    ;; is very flexible and provides several examples.
+    (setopt spacious-padding-subtle-frame-lines
+            `( :mode-line-active error
+               :mode-line-inactive shadow))
+
+    (spacious-padding-mode))
+#+end_src
+
+** [[https://github.com/joaotavora/breadcrumb][breadcrumb]]
+
+バッファの先頭にパンくずリストを表示し、現在の位置を視覚的に把握しやすくするパッケージです。
+
+#+begin_src emacs-lisp
+  (use-package breadcrumb
+    :config
+    (breadcrumb-mode))
+#+end_src
+
+** [[https://github.com/abo-abo/avy][avy]]
+
+カーソル位置から離れた場所にある単語やシンボルへ素早くジャンプするためのパッケージです。
+
+#+begin_src emacs-lisp
+  (use-package avy
+    :bind ("C-:" . avy-goto-char))
+#+end_src
+
+** [[https://protesilaos.com/emacs/pulsar][pulsar]]
+
+カーソルの移動や検索操作を視覚的に強調表示するパッケージです。
+
+#+begin_src emacs-lisp
+  (use-package pulsar
+    :config
+    (pulsar-global-mode))
+#+end_src
+
+** [[https://github.com/minad/goggles][goggles]]
+
+コードの変更箇所を一時的にハイライト表示するパッケージです。
+
+#+begin_src emacs-lisp
+  (use-package goggles
+    :hook ((prog-mode text-mode) . goggles-mode)
+    :config
+    (setq-default goggles-pulse t)) ;; set to nil to disable pulsing
+#+end_src
+
+** [[https://github.com/jscheid/dtrt-indent][dtrt-indent]]
+
+自動インデント検出と設定を行うパッケージです。
+
+#+begin_src emacs-lisp
+  (use-package dtrt-indent
+    :config
+    (dtrt-indent-global-mode))
+#+end_src
+
+** [[https://github.com/Malabarba/aggressive-indent-mode][aggressive-indent-mode]]
+
+コードのインデントをリアルタイムで自動的に調整するパッケージです。
+
+#+begin_src emacs-lisp
+  (use-package aggressive-indent
+    :hook (emacs-lisp-mode . aggressive-indent-mode))
+#+end_src
+
+** [[https://github.com/jdtsmith/indent-bars][indent-bars]]
+
+コードのインデントレベルを視覚的に示す縦線を表示するパッケージです。
+hookで有効にすると適切なインデントで描画されないことがあったので、タイマーで遅延させて有効化しています。
+
+#+begin_src emacs-lisp
+  (use-package indent-bars
+    :init
+    (dolist (hook '(python-base-mode-hook
+                    yaml-mode-hook
+                    typescript-ts-mode-hook
+                    tsx-ts-mode-hook
+                    java-ts-mode-hook))
+      (add-hook hook
+                (lambda ()
+                  (run-with-timer 3 nil #'indent-bars-mode)))))
+#+end_src
+
+** [[https://github.com/mpwang/perfect-margin][perfect-margin]]
+
+エディタの左右に均等な余白を追加し、テキストの可読性を向上させるパッケージです。
+
+#+begin_src emacs-lisp
+  (use-package perfect-margin
+    :config
+    (perfect-margin-mode))
+#+end_src
+
+*** 縦分割を優先する
+
+perfect-marginを使用していると横分割が発生しやすいため、縦分割を優先する設定にしています。
+
+#+begin_src emacs-lisp
+  (setopt split-height-threshold nil
+          split-width-threshold 128)
+#+end_src
+
+** [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]]
+
+汎用的なLanguage Server Protocol (LSP) クライアントで、
+様々なプログラミング言語のコード補完、シンタックスチェック、リファクタリングなどの機能を提供します。
+
+#+begin_src emacs-lisp
+  (use-package lsp-mode
+    :hook ((html-ts-mode
+            typescript-ts-mode
+            tsx-ts-mode
+            js-ts-mode
+            json-ts-mode
+            java-ts-mode
+            csharp-ts-mode) . lsp)
+    :init
+    (setopt lsp-completion-provider :none
+            lsp-keymap-prefix "M-l"
+            lsp-headerline-breadcrumb-enable nil)
+
+    (add-hook 'lsp-completion-mode-hook
+              (lambda ()
+                (setq-local completion-category-defaults
+                            (assq-delete-all 'lsp-capf completion-category-defaults)))))
+#+end_src
+
+*** [[https://github.com/emacs-lsp/lsp-java][lsp-java]]
+
+Java言語用のLSPクライアント拡張で、
+Eclipse JDT Language Serverを利用してJavaコードの補完、ナビゲーション、リファクタリングなどの機能を提供します。
+
+#+begin_src emacs-lisp
+  (use-package lsp-java
+    :after lsp-mode)
+#+end_src
+
+*** [[https://github.com/gagbo/consult-lsp][consult-lsp]]
+
+LSPサーバーから提供されるシンボル情報をConsultのインターフェースで検索・参照できるようにするパッケージです。
+
+#+begin_src emacs-lisp
+  (use-package consult-lsp
+    :after lsp-mode
+    :config
+    (define-key lsp-mode-map [remap xref-find-apropos] #'consult-lsp-symbols))
+#+end_src
+
+*** [[https://github.com/svaante/lsp-snippet][lsp-snippet]]
+
+LSPサーバーから取得したスニペット情報をTempelスニペットエンジンと連携して利用できるようにするパッケージです。
+
+#+begin_src emacs-lisp
+  (use-package lsp-snippet
+    :vc ( :url "https://github.com/svaante/lsp-snippet"
+          :rev :newest)
+    :config
+    (with-eval-after-load 'lsp-mode
+      (lsp-snippet-tempel-lsp-mode-init))
+    (with-eval-after-load 'eglot
+      (lsp-snippet-tempel-eglot-init)))
+#+end_src
+
+** [[https://github.com/domtronn/all-the-icons.el][all-the-icons]]
+
+アイコンフォントを利用して、
+EmacsのUI要素（バッファリスト、ファイルツリー、モードラインなど）に多彩なアイコンを表示するパッケージです。
+初回利用時は ~M-x all-the-icons-install-fonts~ でフォントをインストールしてください。
+
+#+begin_src emacs-lisp
+  (use-package all-the-icons
+    :if (display-graphic-p))
+#+end_src
+
+** language (プログラミング言語関連モード)
+
+*** elisp
+
+**** [[https://codeberg.org/ideasman42/emacs-elisp-autofmt][emacs-elisp-autofmt]]
+
+Emacs Lispコードの自動フォーマットを行うパッケージです。
+このパッケージは、Emacs Lispコードのスタイルを一貫性のあるものに保つために使用されます。
+
+#+begin_src emacs-lisp
+  (use-package elisp-autofmt
+    :hook (emacs-lisp-mode . elisp-autofmt-mode))
+#+end_src
+
+*** [[https://github.com/abrochard/mermaid-mode][mermaid-mode]]
+
+Mermaid記法でダイアグラムを記述するためのメジャーモードです。
+シンタックスハイライトとMermaid CLIを使った図の生成機能を提供します。
+スケールを2倍に設定して、高解像度での図生成を行います。
+
+#+begin_src emacs-lisp
+  (use-package mermaid-mode
+    :config
+    (setopt mermaid-flags "--scale 2"))
+
+  (use-package mermaid-ts-mode)
+#+end_src
+
+*** web (Web開発関連)
+
+**** [[https://github.com/smihica/emmet-mode][emmet-mode]] (Emmetサポート)
+
+HTMLやCSSなどの記述を効率化するEmmet（旧Zen Coding）をEmacsで利用可能にします。
+CSSセレクタ風の短い記法から複雑なHTML/XML構造を素早く展開できます。
+
+#+begin_src emacs-lisp
+  (use-package emmet-mode
+    :hook ((html-ts-mode
+            css-ts-mode) . emmet-mode))
+#+end_src
+
+**** [[https://github.com/pimeys/emacs-prisma-mode][prisma-mode]] (Prismaスキーマファイル用モード)
+
+ORMツール Prisma のスキーマファイル (~.prisma~) の編集をサポートするメジャーモードです。
+シンタックスハイライト、インデント、フォーマット機能などを提供します。
+
+#+begin_src emacs-lisp
+  (use-package prisma-mode
+    :vc ( :url "https://github.com/pimeys/emacs-prisma-mode" :rev :newest))
+#+end_src
+
+** [[https://github.com/kn66/pomo-cat.el][pomo-cat.el]]
+
+ポモドーロタイマーで休憩時間が来ると画面中央に猫が表示される自作パッケージです。
+
+#+begin_src emacs-lisp
+  (use-package pomo-cat
+    :config
+    (setopt pomo-cat-use-dedicated-frame t)
+    (pomo-cat-start))
+#+end_src
+
+** その他便利関数
+
+*** DBから抽出したデータをIN句用に変換
+
+選択範囲のテキストを行ごとに読み取り、SQLのIN句の形式（例: IN ('A', 'B', 'C')）に変換して、選択範囲を置換します。
+重複行は削除されます。データベースからコピーしたIDリストなどをSQLクエリに整形するのに便利です。
+
+#+begin_src emacs-lisp
+  (defun my/replace-region-with-in-clause (start end)
+    "選択範囲 (START から END まで) の内容をSQLのIN句に変換し、元の選択範囲を置換します。"
+    (interactive "r") ; リージョンがアクティブな場合に呼び出し可能
+    (let* ((region-content (buffer-substring-no-properties start end)) ; 選択範囲の文字列を取得
+           (records (split-string region-content "\n" t)) ; 改行で分割してリスト化 (空行は無視)
+           (unique-records (delete-dups records))        ; 重複を削除
+           ;; 各レコードをシングルクォートで囲む
+           (quoted-records (mapcar (lambda (record) (format "'%s'" record)) unique-records))
+           ;; IN句の文字列を生成
+           (in-clause (format "IN (%s)" (mapconcat 'identity quoted-records ", "))))
+      (delete-region start end) ; 元の選択範囲を削除
+      (insert in-clause)))      ; 生成したIN句を挿入
+#+end_src
+
+** footer
+
+#+begin_src emacs-lisp
+  (provide 'init)
+  ;;; init.el ends here
+#+end_src
+
