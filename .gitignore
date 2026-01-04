@@ -2,14 +2,17 @@
 .lsp-session-v1
 auto-save-list/
 backups/
+bbdb
 custom.el
 early-init.el
+early-init.md
 eclipse.jdt.ls/
 elisp-autofmt-cache/
 elpa/
 eshell/
 history
 init.el
+init.md
 language-servers/
 lisp/
 lsp-installer-github-cache.eld
