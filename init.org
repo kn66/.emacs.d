@@ -215,6 +215,14 @@ Emacsをサーバーとして起動し、~emacsclient~ コマンドからの接�
     (electric-pair-mode))
 #+end_src
 
+*** 他プロセスの編集をバッファに反映
+
+#+begin_src emacs-lisp
+  (use-package autorevert
+    :init
+    (global-auto-revert-mode))
+#+end_src
+
 *** camelCase単位で移動する
 
 ~camelCase~ や ~snake_case~ のような複合語を、各部分（サブワード）ごとに単語として認識し、
