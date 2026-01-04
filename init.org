@@ -381,19 +381,12 @@ Emacs標準のシンタックスチェックフレームワークです。
 *** gnus
 
 Gnusをメールリーダーとして使用するための設定です。
-実際のメールサーバーの情報などは個人情報が含まれるため ~~/.authinfo.gpg~ や ~~/.gnus~ に記述しています。
+実際のメールサーバーの情報などは個人情報が含まれるため ~~/.authinfo.gpg~ や ~~/.gnus~ に詳細な設定を記述しています。
 
 #+begin_src emacs-lisp
   (use-package gnus
     :ensure nil
     :after bbdb
-    :init
-    (setopt gnus-select-method '(nnnil "") ; メインのニュースサーバー設定（使用しないのでnnnil）
-            gnus-secondary-select-methods '((nnml "")) ; ローカルに保存
-            send-mail-function 'smtpmail-send-it ; メール送信にsmtpmailを使用
-            message-send-mail-function 'smtpmail-send-it ; メール送信にsmtpmailを使用
-            gnus-message-archive-group "nnml:bogus" ; 送信メールの保存先指定
-            )
     :config
     (gnus-demon-init))
 #+end_src
