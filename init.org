@@ -690,7 +690,7 @@ Corfu自体の ~corfu-sort-function~ の両方を考慮して決定するカス�
 ** [[https://github.com/radian-software/prescient.el][prescient.el]]
 
 prescientは補完候補の並び替えやフィルター機能を提供します。
-gnus等でorderlessが効かないシチュエーションがあったため、絞り込みにもprescientを使用しています。
+gnusでorderlessの補完が効かないシチュエーションがあったため、絞り込みにもprescientを使用しています。
 
 #+begin_src emacs-lisp
   (use-package prescient
