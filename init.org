@@ -1238,7 +1238,8 @@ undo-fu、undo-fu-repeatを使用していましたが、Emacs組み込みのUnd
 ** [[https://github.com/purcell/emacs-reformatter][reformatter]] (コードフォーマッタ統合)
 
 各種コードフォーマッタ (Prettier, Black, gofmtなど) を統一的なインターフェースで利用可能にするパッケージです。
-ここでは、TypeScriptおよびJSX/TSXファイル保存時にPrettierを自動実行する設定例を示します。
+以前は[[https://github.com/radian-software/apheleia][apheleia]]を使用していましたが、Windows環境で大きいプロジェクトで変更箇所が多くなると
+非同期プロセスの失敗が発生することがあったためよりシンプルなこちらのパッケージにしました。
 
 #+begin_src emacs-lisp
   (use-package reformatter
