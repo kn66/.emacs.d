@@ -1537,6 +1537,7 @@ hookで有効にすると適切なインデントで描画されないことが�
                     yaml-mode-hook
                     typescript-ts-mode-hook
                     tsx-ts-mode-hook
+                    java-mode
                     java-ts-mode-hook))
       (add-hook hook
                 (lambda ()
@@ -1574,6 +1575,7 @@ perfect-marginを使用していると横分割が発生しやすいため、縦
             tsx-ts-mode
             js-ts-mode
             json-ts-mode
+            java-mode
             java-ts-mode
             csharp-ts-mode) . lsp)
     :init
