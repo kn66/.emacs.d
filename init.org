@@ -217,10 +217,16 @@ Emacsをサーバーとして起動し、~emacsclient~ コマンドからの接�
 
 *** 他プロセスの編集をバッファに反映
 
+auto-revertを使用していましたが、Windows環境で大きいプロジェクトを編集し、ブランチの切り替えを行なうと
+反映に時間が掛かる事があります。
+この問題を解決するために自作パッケージを作成しました。
+
 #+begin_src emacs-lisp
-  (use-package autorevert
-    :init
-    (global-auto-revert-mode))
+  (use-package visible-auto-revert
+    :vc ( :url "https://github.com/kn66/visible-auto-revert.el"
+          :rev :newest)
+    :config
+    (visible-auto-revert-mode))
 #+end_src
 
 *** camelCase単位で移動する
