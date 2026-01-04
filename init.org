@@ -19,7 +19,7 @@
 ** 使い方
 
 1. このファイルを ~~/.emacs.d/init.org~ として配置
-2. Emacsを起動し、 ~M-x org-babel-tangle~ を実行
+2. Emacsを起動し、 ~M-x org-babel-load-file~ を実行
 3. 生成された ~init.el~ が次回起動時から読み込まれます
 
 ** 必要な外部ツール
