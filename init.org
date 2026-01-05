@@ -1312,6 +1312,9 @@ Emacs 29以降でTree-sitterが標準サポートされたことに伴い、公�
 #+begin_src emacs-lisp
   (use-package treesit-langs
     :vc (treesit-langs :url "https://github.com/emacs-tree-sitter/treesit-langs" :rev :newest)
+    :init
+    ;; Emacs30でversion-mismatchが発生する場合は動作するバージョンを指定します。
+    ;; (setopt treesit-langs-bundle-version "0.12.300")
     :config
     ;; 各メジャーモードでTree-sitterを利用するための基本的な設定を自動で行う
     (treesit-langs-major-mode-setup))
