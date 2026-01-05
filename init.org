@@ -1541,7 +1541,8 @@ hookで有効にすると適切なインデントで描画されないことが�
                     typescript-ts-mode-hook
                     tsx-ts-mode-hook
                     java-mode
-                    java-ts-mode-hook))
+                    java-ts-mode-hook
+                    csharp-ts-mode-hook))
       (add-hook hook
                 (lambda ()
                   (run-with-timer 3 nil #'indent-bars-mode)))))
