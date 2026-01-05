@@ -1540,7 +1540,9 @@ hookで有効にすると適切なインデントで描画されないことが�
                     yaml-mode-hook
                     typescript-ts-mode-hook
                     tsx-ts-mode-hook
-                    java-mode
+                    js-ts-mode-hook
+                    json-ts-mode-hook
+                    java-mode-hook
                     java-ts-mode-hook
                     csharp-ts-mode-hook))
       (add-hook hook
