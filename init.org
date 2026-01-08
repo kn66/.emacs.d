@@ -70,26 +70,26 @@ Emacsのパッケージ管理システム ~package.el~ の設定です。
 MELPAリポジトリを追加し、パッケージの取得元や優先順位を設定します。
 
 #+begin_src emacs-lisp
-    (require 'package)
+  (require 'package)
 
-    (add-to-list 'package-archives '("gnu-elpa-devel" . "https://elpa.gnu.org/devel/"))
-    (add-to-list 'package-archives '("nongnu-devel" . "https://elpa.nongnu.org/nongnu-devel/") t)
-    (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
+  (add-to-list 'package-archives '("gnu-elpa-devel" . "https://elpa.gnu.org/devel/"))
+  (add-to-list 'package-archives '("nongnu-devel" . "https://elpa.nongnu.org/nongnu-devel/") t)
+  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
 
-    ;; インストールする優先順位を指定
-    (setopt package-archive-priorities
-            '(("gnu-elpa-devel" . 3)
-              ("nongnu-devel" . 2)
-              ("melpa" . 1)))
-    ;; 安定版を使用したい場合は下記のように設定
-    ;; (setopt package-archive-priorities
-    ;;         '(("gnu" . 3)
-    ;;           ("nongnu" . 2)
-    ;;           ("melpa" . 1)))
+  ;; インストールする優先順位を指定
+  (setopt package-archive-priorities
+          '(("gnu-elpa-devel" . 3)
+            ("nongnu-devel" . 2)
+            ("melpa" . 1)))
+  ;; 安定版を使用したい場合は下記のように設定
+  ;; (setopt package-archive-priorities
+  ;;         '(("gnu" . 3)
+  ;;           ("nongnu" . 2)
+  ;;           ("melpa" . 1)))
 
-    (setopt package-install-upgrade-built-in t ; built-inパッケージも更新対象にする
-            package-native-compile t           ; インストール時にnative compileする
-            )
+  (setopt package-install-upgrade-built-in t ; built-inパッケージも更新対象にする
+          package-native-compile t           ; インストール時にnative compileする
+          )
 #+end_src
 
 *** [[https://github.com/kn66/package-git.el][package-git]]
@@ -478,9 +478,9 @@ BBDB (The Insidious Big Brother Database) は、Emacs用の連絡先管理シス
 
 #+begin_src emacs-lisp
   (use-package org
-      :init
-      (setopt org-return-follows-link t  ; Returnキーでリンク先を開く
-              ))
+    :init
+    (setopt org-return-follows-link t  ; Returnキーでリンク先を開く
+            ))
 #+end_src
 
 *** org-indent
