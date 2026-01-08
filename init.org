@@ -554,7 +554,13 @@ orgファイルをmarkdownファイルに変換してくれます。
                                                "/usr/share/skk/SKK-JISYO.station"
                                                "/usr/share/skk/SKK-JISYO.law")))
           (IS-WINDOWS
-           (setopt skk-large-jisyo (expand-file-name ".skk/SKK-JISYO.L" (getenv "USERPROFILE"))))))
+           (setopt skk-large-jisyo (expand-file-name ".skk/SKK-JISYO.L" (getenv "USERPROFILE"))
+                   skk-extra-jisyo-file-list
+                   (list (expand-file-name ".skk/SKK-JISYO.geo" (getenv "USERPROFILE"))
+                         (expand fido-mode ".skk/SKK-JISYO.jinmei" (getenv "USERPROFILE"))
+                         (expand-file-name ".skk/SKK-JISYO.propernoun" (getenv "USERPROFILE"))
+                         (expand-file-name ".skk/SKK-JISYO.station" (getenv "USERPROFILE"))
+                         (expand-file-name ".skk/SKK-JISYO.law" (getenv "USERPROFILE")))))))
 #+end_src
 
 ** [[https://github.com/minad/corfu][corfu]]
