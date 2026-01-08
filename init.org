@@ -713,9 +713,7 @@ gnusでorderlessの補完が効かないシチュエーションがあったた�
 #+begin_src emacs-lisp
   (use-package prescient
     :config
-    (setopt completion-styles '(prescient basic)
-            completion-category-defaults nil
-            completion-category-overrides '((eglot (styles prescient basic))
+    (setopt completion-category-overrides '((eglot (styles prescient basic))
                                             (eglot-capf (styles prescient basic))))
 
     (with-eval-after-load 'migemo
