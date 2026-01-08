@@ -368,11 +368,15 @@ Emacs標準のプロジェクト管理機能 ~project.el~ の設定です。
 Emacs標準のシンタックスチェックフレームワークです。
 リアルタイムでコードのエラーや警告を検出し、表示します。
 類似パッケージに [[https://github.com/flycheck/flycheck][flycheck]] があります。
+treesit-foldとインジケータが衝突するため無効にして、代わりに行末にエラーメッセージを表示するようにしています。
 
 #+begin_src emacs-lisp
   (use-package flymake
     :hook ((prog-mode
-            conf-mode) . flymake-mode))
+            conf-mode) . flymake-mode)
+    :init
+    (setopt flymake-indicator-type nil
+            flymake-show-diagnostics-at-end-of-line t))
 #+end_src
 
 *** インデントの基本をスペースに変更
