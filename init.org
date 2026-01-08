@@ -412,6 +412,8 @@ BBDB (The Insidious Big Brother Database) は、Emacs用の連絡先管理シス
             bbdb-mua-auto-action 'create
             bbdb-mua-action 'create
             bbdb-mua-pop-up nil
+            bbdb-add-name t ; 既存レコードの名前変更を自動承認
+            bbdb-add-aka t ; 別名追加を自動承認
             bbdb-message-all-addresses t
             bbdb-message-try-all-headers t
             bbdb-completion-display-record nil
