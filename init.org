@@ -1348,7 +1348,20 @@ Tree-sitterの構文解析情報を利用して、コードの折りたたみ (�
   (use-package treesit-fold
     :config
     (global-treesit-fold-mode)
-    (global-treesit-fold-indicators-mode))
+    (global-treesit-fold-indicators-mode)
+
+    ;; lsp-modeやflymakeとの競合を避けるため、オーバーレイ作成関数を上書き
+    (with-eval-after-load 'treesit-fold-indicators
+      (defun treesit-fold-indicators--create-overlay-at-point ()
+        "Create indicator overlay at current point."
+        (let* ((pos (line-beginning-position))
+               (ov (make-overlay pos (1+ pos)))
+               (window (selected-window)))
+          (overlay-put ov 'treesit-fold-indicators-window window)
+          (overlay-put ov 'window window)
+          ;; overlayにkeymapを設定して優先させる
+          (overlay-put ov 'keymap treesit-fold-indicators-mode-map)
+          ov))))
 #+end_src
 
 ** [[https://github.com/akicho8/string-inflection][string-inflection]] (単語ケース変換)
