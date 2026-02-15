@@ -117,6 +117,19 @@ elpaディレクトリ上にtarball形式のパッケージを管理する用の
     (package-retry-mode))
 #+end_src
 
+*** [[https://github.com/kn66/package-upgrade-guard.el][package-upgrade-guard]]
+
+パッケージ更新時に差分を表示するパッケージです。
+Emacs31から標準機能で搭載されます。
+
+#+begin_src emacs-lisp
+  (use-package package-upgrade-guard
+    :if (version< emacs-version "31")
+    :vc ( :url "https://github.com/kn66/package-upgrade-guard.el.git" :rev :newest)
+    :config
+    (package-upgrade-guard-mode))
+#+end_src
+
 *** use-package
 
 パッケージの導入や設定を簡潔に記述するためのマクロ ~use-package~ の設定です。
