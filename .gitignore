@@ -8,6 +8,7 @@ early-init.el
 early-init.md
 eclipse.jdt.ls/
 elisp-autofmt-cache/
+eln-cache/
 elpa/
 eshell/
 history
@@ -18,9 +19,13 @@ lisp/
 lsp-installer-github-cache.eld
 lsp-proxy/
 mason/
+places
 places.eld
+projects
 projects.eld
+recentf
 recentf.eld
+skk-get-jisyo/
 tmp/
 tramp
 transient/
