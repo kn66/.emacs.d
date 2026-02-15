@@ -1169,13 +1169,13 @@ Emacsで[[https://github.com/wilfred/difftastic][difftastic]]を使用できる�
     (cond (IS-LINUX
            (setopt fontaine-presets
                    '((regular
-                      :default-family "PlemolJP"
-                      :fixed-pitch-family "PlemolJP"
-                      :variable-pitch-family "IBM Plex Sans JP"
-                      :italic-family "PlemolJP")
+                      :default-family "Noto Sans Mono CJK JP"
+                      :fixed-pitch-family "Noto Sans Mono CJK JP"
+                      :variable-pitch-family "Noto Sans CJK JP"
+                      :italic-family "Noto Sans Mono CJK JP")
                      (large
-                      :default-family "PlemolJP"
-                      :variable-pitch-family "IBM Plex Sans JP"))))
+                      :default-family "Noto Sans Mono CJK JP"
+                      :variable-pitch-family "Noto Sans CJK JP"))))
 
           (IS-WINDOWS
            (setopt fontaine-presets
