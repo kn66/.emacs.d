@@ -73,19 +73,19 @@ MELPAリポジトリを追加し、パッケージの取得元や優先順位を
 #+begin_src emacs-lisp
   (require 'package)
 
-  (add-to-list 'package-archives '("gnu-elpa-devel" . "https://elpa.gnu.org/devel/"))
-  (add-to-list 'package-archives '("nongnu-devel" . "https://elpa.nongnu.org/nongnu-devel/") t)
+  ;; (add-to-list 'package-archives '("gnu-elpa-devel" . "https://elpa.gnu.org/devel/"))
+  ;; (add-to-list 'package-archives '("nongnu-devel" . "https://elpa.nongnu.org/nongnu-devel/") t)
   (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
 
   ;; インストールする優先順位を指定
   (setopt package-archive-priorities
-          '(("gnu-elpa-devel" . 3)
-            ("nongnu-devel" . 2)
+          '(("gnu" . 3)
+            ("nongnu" . 2)
             ("melpa" . 1)))
-  ;; 安定版を使用したい場合は下記のように設定
+  ;; 開発版を使用したい場合は下記のように設定
   ;; (setopt package-archive-priorities
-  ;;         '(("gnu" . 3)
-  ;;           ("nongnu" . 2)
+  ;;         '(("gnu-elpa-devel" . 3)
+  ;;           ("nongnu-devel" . 2)
   ;;           ("melpa" . 1)))
 
   (setopt package-install-upgrade-built-in t ; built-inパッケージも更新対象にする
