@@ -511,7 +511,7 @@ ef-themesを使用して独自テーマを作成・適用しています。
             ef-themes-variable-pitch-ui t
             ef-themes-italic-constructs nil
             ef-themes-bold-constructs nil)
-    (load-theme 'ef-yamabuki t))
+    (load-theme 'ef-duo-light t))
 #+end_src
 
 ** org
