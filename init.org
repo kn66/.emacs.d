@@ -807,7 +807,11 @@ Corfuがバッファ内のテキスト補完を担当するのに対し、Vertic
     :init
     (setopt enable-recursive-minibuffers t
             read-extended-command-predicate #'command-completion-default-include-p
-            minibuffer-prompt-properties '(read-only t cursor-intangible t face minibuffer-prompt))
+            minibuffer-prompt-properties '(read-only t cursor-intangible t face minibuffer-prompt)
+            ;; 大文字・小文字を区別しない
+            read-file-name-completion-ignore-case t
+            read-buffer-completion-ignore-case t
+            completion-ignore-case t)
 
     (context-menu-mode))
 #+end_src
