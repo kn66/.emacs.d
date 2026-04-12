@@ -598,7 +598,6 @@ orgファイルをmarkdownファイルに変換してくれます。
 
 #+begin_src emacs-lisp
   (use-package ddskk
-    :bind ("C-x C-j" . skk-mode)
     :init
     (setopt default-input-method "japanese-skk"
             skk-dcomp-multiple-activate t)
