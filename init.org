@@ -519,7 +519,7 @@ ef-themesを使用して独自テーマを作成・適用しています。
     :defer t
     :init
     (setopt org-return-follows-link t  ; Returnキーでリンク先を開く
-            ))
+            org-default-notes-file "~/org/inbox.org"))
 #+end_src
 
 *** org-indent
@@ -530,6 +530,16 @@ ef-themesを使用して独自テーマを作成・適用しています。
   (use-package org-indent
     :ensure nil
     :hook (org-mode . org-indent-mode))
+#+end_src
+
+*** org-agenda
+
+#+begin_src emacs-lisp
+  (use-package org-agenda
+    :defer t
+    :ensure nil
+    :config
+    (setopt org-agenda-files '("~/org/")))
 #+end_src
 
 *** [[https://protesilaos.com/emacs/denote][denote]]
