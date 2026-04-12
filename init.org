@@ -415,12 +415,12 @@ Gnusをメールリーダーとして使用するための設定です。
     :ensure nil
     :after bbdb
     :config
-    (gnus-demon-init)
-
     ;; 5分ごとに POP3 をチェック
     (gnus-demon-add-handler
      'gnus-group-get-new-news
-     5 0))
+     5 nil)
+
+    (gnus-demon-init))
 #+end_src
 
 **** [[https://www.gnu.org/software/emacs/manual/html_node/eudc/BBDB.html][bbdb]]
