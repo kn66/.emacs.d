@@ -794,8 +794,8 @@ Corfuがバッファ内のテキスト補完を担当するのに対し、Vertic
 
 #+begin_src emacs-lisp
   (use-package vertico
-    :config
-    (setopt vertico-resize t)
+    :init
+    (setopt vertico-sort-function #'vertico-sort-history-alpha)
     (vertico-mode))
 #+end_src
 
