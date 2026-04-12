@@ -551,6 +551,31 @@ ef-themesを使用して独自テーマを作成・適用しています。
     (setopt org-agenda-files '("~/org/")))
 #+end_src
 
+*** [[https://github.com/minad/org-modern][org-modern]]
+
+Orgバッファの見た目を整え、見出し記号やチェックボックスなどをモダンな表示に置き換えるパッケージです。
+編集体験はそのままに、閲覧時の視認性を高められます。
+
+#+begin_src emacs-lisp
+  (use-package org-modern
+    :config
+    (global-org-modern-mode))
+#+end_src
+
+**** [[https://github.com/jdtsmith/org-modern-indent][org-modern-indent]]
+
+~org-modern~ と組み合わせて、Org文書のインデント表示をより自然に見せる補助パッケージです。
+見た目の整合性を保ちながら階層構造を把握しやすくします。
+
+#+begin_src emacs-lisp
+  (use-package org-modern-indent
+    :after org
+    :vc ( :url "https://github.com/jdtsmith/org-modern-indent"
+          :rev :newest)
+    :config
+    (add-hook 'org-mode-hook #'org-modern-indent-mode 90))
+#+end_src
+
 *** [[https://protesilaos.com/emacs/denote][denote]]
 
 シンプルな個人用ノート管理システムです。
@@ -1646,6 +1671,17 @@ perfect-marginを使用していると横分割が発生しやすいため、縦
 #+begin_src emacs-lisp
   (setopt split-height-threshold nil
           split-width-threshold 128)
+#+end_src
+
+** [[https://github.com/jdtsmith/indent-bars][indent-bars]]
+
+こちらは ~indent-bars~ をより広いモードで一律有効にするための追加設定です。
+前段の遅延有効化設定とは別に、汎用的なフック設定をまとめています。
+
+#+begin_src emacs-lisp
+  (use-package indent-bars
+    :hook ((prog-mode
+            conf-mode) . indent-bars-mode))
 #+end_src
 
 ** eglot
