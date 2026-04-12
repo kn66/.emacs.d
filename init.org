@@ -91,6 +91,10 @@ MELPAリポジトリを追加し、パッケージの取得元や優先順位を
   (setopt package-install-upgrade-built-in t ; built-inパッケージも更新対象にする
           package-native-compile t           ; インストール時にnative compileする
           )
+
+  (unless (version< emacs-version "31.0")
+    ;; Emacs31から組み込みでアップデートのレビュー機能が導入されています
+    (setopt package-review-policy t))
 #+end_src
 
 *** [[https://github.com/kn66/package-git.el][package-git]]
