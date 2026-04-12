@@ -1673,17 +1673,6 @@ perfect-marginを使用していると横分割が発生しやすいため、縦
           split-width-threshold 128)
 #+end_src
 
-** [[https://github.com/jdtsmith/indent-bars][indent-bars]]
-
-こちらは ~indent-bars~ をより広いモードで一律有効にするための追加設定です。
-前段の遅延有効化設定とは別に、汎用的なフック設定をまとめています。
-
-#+begin_src emacs-lisp
-  (use-package indent-bars
-    :hook ((prog-mode
-            conf-mode) . indent-bars-mode))
-#+end_src
-
 ** eglot
 
 ~eglot~ 周辺の補助パッケージをまとめたセクションです。
