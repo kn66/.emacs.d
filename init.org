@@ -489,17 +489,6 @@ BBDB (The Insidious Big Brother Database) は、Emacs用の連絡先管理シス
     (setopt ediff-split-window-function 'split-window-horizontally))
 #+end_src
 
-*** 現在行をハイライト
-
-カーソルがある行を背景色で強調し、現在位置を見失いにくくします。
-特に分割ウィンドウや長いバッファでの移動時に有効です。
-
-#+begin_src emacs-lisp
-  (use-package hl-line
-    :config
-    (global-hl-line-mode))
-#+end_src
-
 ** テーマ
 
 *** [[https://protesilaos.com/emacs/ef-themes][ef-themes]]
