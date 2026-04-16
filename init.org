@@ -1228,24 +1228,24 @@ Emacsで[[https://github.com/wilfred/difftastic][difftastic]]を使用できる�
            (setopt fontaine-presets
                    '((regular
                       :default-height 120
-                      :default-family "PlemolJP"
-                      :fixed-pitch-family "PlemolJP"
-                      :variable-pitch-family "IBM Plex Sans JP"
-                      :italic-family "PlemolJP")
+                      :default-family "更紗等幅ゴシック J"
+                      :fixed-pitch-family "更紗等幅ゴシック J"
+                      :variable-pitch-family "更紗ゴシック J"
+                      :italic-family "更紗等幅ゴシック J")
                      (large
-                      :default-family "PlemolJP"
-                      :variable-pitch-family "IBM Plex Sans JP"))))
+                      :default-family "更紗等幅ゴシック J"
+                      :variable-pitch-family "更紗ゴシック J"))))
 
           (IS-WINDOWS
            (setopt fontaine-presets
                    '((regular
-                      :default-family "PlemolJP"
-                      :fixed-pitch-family "PlemolJP"
-                      :variable-pitch-family "IBM Plex Sans JP"
-                      :italic-family "PlemolJP")
+                      :default-family "更紗等幅ゴシック J"
+                      :fixed-pitch-family "更紗等幅ゴシック J"
+                      :variable-pitch-family "更紗ゴシック J"
+                      :italic-family "更紗等幅ゴシック J")
                      (large
-                      :default-family "PlemolJP"
-                      :variable-pitch-family "IBM Plex Sans JP")))))
+                      :default-family "更紗等幅ゴシック J"
+                      :variable-pitch-family "更紗ゴシック J")))))
 
     (fontaine-set-preset (or (fontaine-restore-latest-preset) 'regular))
     (add-hook 'kill-emacs-hook #'fontaine-store-latest-preset))
