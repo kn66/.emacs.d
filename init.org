@@ -489,22 +489,6 @@ BBDB (The Insidious Big Brother Database) は、Emacs用の連絡先管理シス
     (setopt ediff-split-window-function 'split-window-horizontally))
 #+end_src
 
-** テーマ
-
-*** [[https://protesilaos.com/emacs/ef-themes][ef-themes]]
-
-ef-themesを使用して独自テーマを作成・適用しています。
-
-#+begin_src emacs-lisp
-  ;; ~/.emacs.d/lisp/ef-*.el を load-theme の探索対象に追加
-  (add-to-list 'custom-theme-load-path
-               (expand-file-name "themes" user-emacs-directory))
-
-  (use-package ef-themes
-    :config
-    (load-theme 'ef-hidamari t))
-#+end_src
-
 ** org
 
 ~org-mode~ に関する基本的な設定をしています。
