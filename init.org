@@ -489,6 +489,16 @@ BBDB (The Insidious Big Brother Database) は、Emacs用の連絡先管理シス
     (setopt ediff-split-window-function 'split-window-horizontally))
 #+end_src
 
+** folio-theme
+
+#+begin_src emacs-lisp
+  (use-package folio-theme
+    :vc ( :url "https://github.com/kn66/folio-theme.el"
+          :rev :newest)
+    :config
+    (load-theme 'folio t))
+#+end_src
+
 ** org
 
 ~org-mode~ に関する基本的な設定をしています。
