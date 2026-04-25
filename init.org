@@ -836,8 +836,6 @@ nucleoライブラリを使用した補完パッケージ。
 #+begin_src emacs-lisp
   (require 'cl-lib)
 
-  (savehist-mode 1)
-
   (defun my-nucleo-sort-by-history (history candidates)
     (let ((rank (make-hash-table :test #'equal))
           (i 0))
