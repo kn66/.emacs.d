@@ -811,7 +811,8 @@ nucleoライブラリを使用した補完パッケージ。
                                             (eglot-capf (styles nucleo basic))))
 
     (setopt nucleo-completion-sort-ties-by-length t
-            nucleo-completion-sort-ties-alphabetically t)
+            nucleo-completion-sort-ties-alphabetically t
+            nucleo-completion-highlight-score-bands t)
 
     (with-eval-after-load 'migemo
       (defun my-nucleo-completion-migemo-regexp (term)
@@ -861,6 +862,34 @@ nucleoライブラリを使用した補完パッケージ。
   (add-to-list 'completion-category-overrides
                '(command
                  (display-sort-function . my-nucleo-sort-commands-by-history)))
+#+end_src
+
+*** corfu-hist用の設定
+
+#+begin_src emacs-lisp
+  (with-eval-after-load 'corfu
+    (defun my-corfu-nucleo-history-sort (candidates)
+      "Apply display-sort-function, then promote Corfu history without breaking Nucleo order."
+      (let* ((display-sort-func (corfu--metadata-get 'display-sort-function))
+             (candidates
+              (if display-sort-func
+                  (funcall display-sort-func candidates)
+                candidates)))
+        (if (and (boundp 'corfu-history)
+                 corfu-history)
+            (let ((rank (make-hash-table :test #'equal)))
+              (cl-loop for item in corfu-history
+                       for i from 0
+                       unless (gethash item rank)
+                       do (puthash item i rank))
+              (cl-stable-sort
+               candidates
+               (lambda (a b)
+                 (< (gethash (substring-no-properties a) rank most-positive-fixnum)
+                    (gethash (substring-no-properties b) rank most-positive-fixnum)))))
+          candidates)))
+
+    (setopt corfu-sort-override-function #'my-corfu-nucleo-history-sort))
 #+end_src
 
 ** [[https://github.com/minad/vertico][vertico]]
