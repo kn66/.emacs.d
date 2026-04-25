@@ -804,10 +804,14 @@ nucleoライブラリを使用した補完パッケージ。
   (use-package nucleo-completion
     :vc ( :url "https://github.com/kn66/nucleo-completion.el.git"
           :rev :newest)
+    ;; :load-path "~/.emacs.d/lisp/nucleo-completion.el/" ; 検証用
     :config
     (setopt completion-styles '(nucleo basic)
             completion-category-overrides '((eglot (styles nucleo basic))
                                             (eglot-capf (styles nucleo basic))))
+
+    (setopt nucleo-completion-sort-ties-by-length t
+            nucleo-completion-sort-ties-alphabetically t)
 
     (with-eval-after-load 'migemo
       (defun my-nucleo-completion-migemo-regexp (term)
