@@ -815,14 +815,33 @@ nucleoライブラリを使用した補完パッケージ。
             nucleo-completion-highlight-score-bands t)
 
     (with-eval-after-load 'migemo
+      (defvar my-nucleo-completion-migemo-regexp-cache
+        (make-hash-table :test #'equal))
+
+      (defun my-nucleo-completion-clear-migemo-regexp-cache ()
+        (clrhash my-nucleo-completion-migemo-regexp-cache))
+
       (defun my-nucleo-completion-migemo-regexp (term)
         (when (not (string-empty-p term))
-          (let ((regexp (downcase (migemo-get-pattern term))))
-            (condition-case nil
-                (progn
-                  (string-match-p regexp "")
-                  regexp)
-              (invalid-regexp nil)))))
+          (let ((cached (gethash term
+                                  my-nucleo-completion-migemo-regexp-cache
+                                  :my-nucleo-cache-miss)))
+            (if (not (eq cached :my-nucleo-cache-miss))
+                cached
+              (when (> (hash-table-count
+                        my-nucleo-completion-migemo-regexp-cache)
+                       1024)
+                (my-nucleo-completion-clear-migemo-regexp-cache))
+              (let* ((regexp (downcase (migemo-get-pattern term)))
+                     (result
+                      (condition-case nil
+                          (progn
+                            (string-match-p regexp "")
+                            regexp)
+                        (invalid-regexp nil))))
+                (puthash term result
+                         my-nucleo-completion-migemo-regexp-cache)
+                result)))))
 
       (add-to-list 'nucleo-completion-regexp-functions
                    #'my-nucleo-completion-migemo-regexp))
