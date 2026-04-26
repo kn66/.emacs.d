@@ -721,17 +721,27 @@ Emacsの標準補完インターフェース ~completion-at-point-functions~ (CA
 #+begin_src emacs-lisp
   (use-package cape
     :init
-    (advice-add 'eglot-completion-at-point :around #'cape-wrap-buster)
-    (advice-add 'eglot-completion-at-point :around #'cape-wrap-nonexclusive)
-    (advice-add 'lsp-completion-at-point :around #'cape-wrap-buster)
-    (advice-add 'lsp-completion-at-point :around #'cape-wrap-nonexclusive)
     (advice-add 'lsp-completion-at-point :around #'cape-wrap-noninterruptible)
 
-    (add-hook 'completion-at-point-functions #'cape-dabbrev)
-    (add-hook 'completion-at-point-functions #'cape-file)
-    (add-hook 'completion-at-point-functions #'cape-keyword)
-    (add-hook 'completion-at-point-functions #'cape-elisp-block)
-    (add-hook 'completion-at-point-functions #'tempel-complete))
+    (defun my/set-super-capf (&optional arg)
+      (setq-local completion-at-point-functions
+                  (list
+                   #'cape-file
+                   (cape-capf-sort
+                    (cape-capf-buster
+                     (cape-capf-super
+                      (if arg
+                          arg
+                        (car completion-at-point-functions))
+                      #'cape-dabbrev
+                      #'cape-keyword
+                      #'cape-elisp-block
+                      #'tempel-complete))))))
+
+    (add-hook 'prog-mode-hook #'my/set-super-capf)
+    (add-hook 'text-mode-hook #'my/set-super-capf)
+    (add-hook 'conf-mode-hook #'my/set-super-capf)
+    (add-hook 'eglot-managed-mode-hook #'my/set-super-capf))
 #+end_src
 
 *** [[https://codeberg.org/akib/emacs-corfu-terminal][corfu-terminal]]
