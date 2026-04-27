@@ -834,8 +834,8 @@ nucleoライブラリを使用した補完パッケージ。
       (defun my-nucleo-completion-migemo-regexp (term)
         (when (not (string-empty-p term))
           (let ((cached (gethash term
-                                  my-nucleo-completion-migemo-regexp-cache
-                                  :my-nucleo-cache-miss)))
+                                 my-nucleo-completion-migemo-regexp-cache
+                                 :my-nucleo-cache-miss)))
             (if (not (eq cached :my-nucleo-cache-miss))
                 cached
               (when (> (hash-table-count
