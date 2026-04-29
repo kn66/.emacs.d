@@ -822,7 +822,8 @@ nucleoライブラリを使用した補完パッケージ。
 
     (setopt nucleo-completion-sort-ties-by-length nil
             nucleo-completion-sort-ties-alphabetically t
-            nucleo-completion-highlight-score-bands t)
+            nucleo-completion-highlight-score-bands t
+            nucleo-completion-persistent-regexp-cache-size 1024)
 
     (with-eval-after-load 'migemo
       (defun my-nucleo-completion-migemo-regexp (term)
