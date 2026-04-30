@@ -741,6 +741,7 @@ Emacsの標準補完インターフェース ~completion-at-point-functions~ (CA
     (add-hook 'prog-mode-hook #'my/set-super-capf)
     (add-hook 'text-mode-hook #'my/set-super-capf)
     (add-hook 'conf-mode-hook #'my/set-super-capf)
+    (add-hook 'message-mode-hook #'my/set-super-capf)
     (add-hook 'eglot-managed-mode-hook #'my/set-super-capf))
 #+end_src
 
