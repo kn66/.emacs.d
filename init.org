@@ -1030,7 +1030,9 @@ vertico-posframeにプレビュー機能を追加するパッケージです。
           :rev :newest)
     ;; :load-path "~/.emacs.d/lisp/vertico-posframe-preview/" ; 検証用
     :after (vertico vertico-posframe)
-    :config
+    :bind ( :map vertico-map
+            ("C-t" . vertico-posframe-preview-toggle))
+    :init
     (vertico-posframe-preview-mode)
     (with-eval-after-load 'consult
       (vertico-posframe-preview-refresh-integrations)))
