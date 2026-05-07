@@ -821,7 +821,7 @@ nucleoライブラリを使用した補完パッケージ。
             completion-category-overrides '((eglot (styles nucleo basic))
                                             (eglot-capf (styles nucleo basic))))
 
-    (setopt nucleo-completion-sort-ties-by-length nil
+    (setopt nucleo-completion-sort-ties-by-length t
             nucleo-completion-sort-ties-alphabetically t
             nucleo-completion-highlight-score-bands t
             nucleo-completion-persistent-regexp-cache-size 1024)
