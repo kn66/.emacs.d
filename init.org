@@ -742,7 +742,7 @@ nucleoライブラリを使用した補完パッケージ。
     ;; :load-path "~/.emacs.d/lisp/nucleo-completion.el/"
     :config
     ;; Rust moduleがない場合にインストールする
-    ;; (nucleo-completion-ensure-module)
+    (nucleo-completion-ensure-module)
 
     (setopt completion-styles '(nucleo basic)
             completion-category-overrides '((eglot (styles nucleo basic))
