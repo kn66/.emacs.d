@@ -520,31 +520,6 @@ BBDB (The Insidious Big Brother Database) は、Emacs用の連絡先管理シス
     (setopt org-agenda-files '("~/org/")))
 #+end_src
 
-*** [[https://github.com/minad/org-modern][org-modern]]
-
-Orgバッファの見た目を整え、見出し記号やチェックボックスなどをモダンな表示に置き換えるパッケージです。
-編集体験はそのままに、閲覧時の視認性を高められます。
-
-#+begin_src emacs-lisp
-  (use-package org-modern
-    :config
-    (global-org-modern-mode))
-#+end_src
-
-**** [[https://github.com/jdtsmith/org-modern-indent][org-modern-indent]]
-
-~org-modern~ と組み合わせて、Org文書のインデント表示をより自然に見せる補助パッケージです。
-見た目の整合性を保ちながら階層構造を把握しやすくします。
-
-#+begin_src emacs-lisp
-  (use-package org-modern-indent
-    :after org
-    :vc ( :url "https://github.com/jdtsmith/org-modern-indent"
-          :rev :newest)
-    :config
-    (add-hook 'org-mode-hook #'org-modern-indent-mode 90))
-#+end_src
-
 *** [[https://protesilaos.com/emacs/denote][denote]]
 
 シンプルな個人用ノート管理システムです。
