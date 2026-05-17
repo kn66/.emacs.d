@@ -314,21 +314,8 @@ Emacsからファイルを削除する際に、即座に完全削除するので
 #+begin_src emacs-lisp
   (use-package delsel
     :ensure nil
-    :config
-    (delete-selection-mode))
-#+end_src
-
-*** tab-bar-mode
-
-フレーム内のウィンドウ構成 (バッファの配置など) を「タブ」として管理する機能です。
-複数の作業コンテキストをタブで切り替えられます。
-
-#+begin_src emacs-lisp
-  (use-package tab-bar
-    :ensure nil
     :init
-    (tab-bar-mode)
-    (tab-bar-history-mode))
+    (delete-selection-mode))
 #+end_src
 
 *** 外部プロセスの読み取り最大値を変更
