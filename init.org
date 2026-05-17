@@ -924,6 +924,7 @@ vertico-bufferをchild frameで表示するパッケージです。
     :bind ( :map vertico-map
             ("C-t" . vertico-buffer-frame-toggle-preview))
     :config
+    (setopt vertico-buffer-frame-golden-ratio-scale 1.3)
     (vertico-buffer-frame-mode))
 #+end_src
 
