@@ -1214,9 +1214,10 @@ Emacs上で高機能なGitクライアントを提供するパッケージです
 
 #+begin_src emacs-lisp
   (use-package magit
-    :after project
-    :config
-    (require 'magit-extras)) ; Magitの追加機能 (magit-plusなど) をロード
+    :defer t
+    :init
+    (with-eval-after-load 'project
+      (require 'magit-extras))) ; Magitの追加機能 (magit-plusなど) をロード
 #+end_src
 
 *** [[https://github.com/dgutov/diff-hl][diff-hl]]
