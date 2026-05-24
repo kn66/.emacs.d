@@ -668,28 +668,56 @@ Emacsの標準補完インターフェース ~completion-at-point-functions~ (CA
 #+begin_src emacs-lisp
   (use-package cape
     :init
-    (advice-add 'lsp-completion-at-point :around #'cape-wrap-noninterruptible)
+    (with-eval-after-load 'lsp-completion
+      (advice-add 'lsp-completion-at-point
+                  :around #'cape-wrap-noninterruptible))
 
-    (defun my/set-super-capf (&optional arg)
-      (setq-local completion-at-point-functions
-                  (list
-                   #'cape-file
-                   (cape-capf-sort
-                    (cape-capf-buster
-                     (cape-capf-super
-                      (if arg
-                          arg
-                        (car completion-at-point-functions))
-                      #'cape-dabbrev
-                      #'cape-keyword
-                      #'cape-elisp-block
-                      #'tempel-complete))))))
+    :config
+    (require 'cl-lib)
+    (autoload 'cape-keyword "cape-keyword" nil t)
+    (autoload 'tempel-complete "tempel" nil t)
 
-    (add-hook 'prog-mode-hook #'my/set-super-capf)
-    (add-hook 'text-mode-hook #'my/set-super-capf)
-    (add-hook 'conf-mode-hook #'my/set-super-capf)
-    (add-hook 'message-mode-hook #'my/set-super-capf)
-    (add-hook 'eglot-managed-mode-hook #'my/set-super-capf))
+    (defconst my/cape-extra-capfs
+      '(cape-dabbrev
+        cape-keyword
+        cape-elisp-block
+        tempel-complete))
+
+    (defvar-local my/cape--base-capfs nil)
+
+    (defun my/cape--managed-capf-p (capf)
+      (or (memq capf '(t cape-file my/cape-super-capf))
+          (memq capf my/cape-extra-capfs)))
+
+    (defun my/cape--remember-capfs ()
+      (let ((capfs (cl-remove-if #'my/cape--managed-capf-p
+                                  completion-at-point-functions)))
+        (when capfs
+          (setq-local my/cape--base-capfs
+                      (cl-delete-duplicates
+                       (append capfs my/cape--base-capfs)
+                       :test #'eq)))))
+
+    (defun my/cape--super-capf ()
+      (apply #'cape-wrap-super
+             (append my/cape--base-capfs my/cape-extra-capfs)))
+
+    (defalias 'my/cape-super-capf
+      (cape-capf-sort
+       (cape-capf-nonexclusive
+        (cape-capf-buster #'my/cape--super-capf))))
+
+    (defun my/cape-setup-capfs ()
+      (unless (minibufferp)
+        (my/cape--remember-capfs)
+        (setq-local completion-at-point-functions
+                    '(cape-file my/cape-super-capf t))))
+
+    (dolist (hook '(after-change-major-mode-hook
+                    corfu-mode-hook
+                    eglot-managed-mode-hook
+                    lsp-completion-mode-hook))
+      (add-hook hook #'my/cape-setup-capfs)))
 #+end_src
 
 *** [[https://codeberg.org/akib/emacs-corfu-terminal][corfu-terminal]]
@@ -729,23 +757,6 @@ Emacs 31以降では、Emacs本体のchild frame機能がターミナルでも�
       "If we made a selection during `corfu' completion, cancel it.")
     (define-key corfu-map (kbd "DEL") corfu-magic-cancel-or-backspace)
     (define-key corfu-map (kbd "<backspace>") corfu-magic-cancel-or-backspace))
-#+end_src
-
-*** [[https://github.com/minad/corfu/wiki#combined-sorting][Combined sorting]]
-
-#+begin_src emacs-lisp
-  (defun my-corfu-combined-sort (candidates)
-    "Sort CANDIDATES using both display-sort-function and corfu-sort-function."
-    (let ((candidates
-           (let ((display-sort-func (corfu--metadata-get 'display-sort-function)))
-             (if display-sort-func
-                 (funcall display-sort-func candidates)
-               candidates))))
-      (if corfu-sort-function
-          (funcall corfu-sort-function candidates)
-        candidates)))
-
-  (setq corfu-sort-override-function #'my-corfu-combined-sort)
 #+end_src
 
 ** [[https://github.com/kn66/nucleo-completion.el][nucleo-completion.el]]
