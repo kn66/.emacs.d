@@ -520,16 +520,6 @@ BBDB (The Insidious Big Brother Database) は、Emacs用の連絡先管理シス
             org-default-notes-file "~/org/inbox.org"))
 #+end_src
 
-*** org-indent
-
-テキストの階層構造に基づいてインデントを自動的に調整します。
-
-#+begin_src emacs-lisp
-  (use-package org-indent
-    :ensure nil
-    :hook (org-mode . org-indent-mode))
-#+end_src
-
 *** org-agenda
 
 ~org-agenda~ は、複数のOrgファイルからTODOや予定を集約して確認するための標準機能です。
