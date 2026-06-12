@@ -158,7 +158,7 @@ Emacs 29から標準機能として組み込まれました。
   (use-package nano
     :vc ( :url "https://github.com/rougier/nano-emacs"
           :rev :newest)
-    :init
+    :config
     (setopt nano-font-family-monospaced "更紗等幅ゴシック J"
             nano-font-family-proportional "更紗ゴシック J"
             nano-font-size 12
