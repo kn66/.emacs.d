@@ -903,11 +903,14 @@ vertico-bufferをchild frameで表示するパッケージです。
 
 #+begin_src emacs-lisp
   (use-package vertico-buffer-frame
-    :load-path "~/.emacs.d/lisp/vertico-buffer-frame/"
+    :vc ( :url "https://github.com/kn66/vertico-buffer-frame.git"
+          :rev :newest)
+    ;; :load-path "~/.emacs.d/lisp/vertico-buffer-frame/"
     :after vertico
+    :demand t
     :bind ( :map vertico-map
             ("C-t" . vertico-buffer-frame-toggle-preview))
-    :init
+    :config
     (setopt vertico-buffer-frame-golden-ratio-scale 1.0
             vertico-buffer-frame-auto-width t)
     (vertico-buffer-frame-mode))
