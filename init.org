@@ -182,6 +182,16 @@ Emacs 29から標準機能として組み込まれました。
     (nano-vertico-mode))
 #+end_src
 
+*** halo
+
+#+begin_src emacs-lisp
+  (use-package halo
+    :vc ( :url "https://github.com/kn66/halo.el.git"
+          :rev :newest)
+    :config
+    (halo-global-mode))
+#+end_src
+
 ** Emacs標準機能の設定
 
 Emacsの標準機能に関する各種カスタマイズを行います。
