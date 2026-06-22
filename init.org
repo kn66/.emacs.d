@@ -908,24 +908,16 @@ This Vertico extension enables selecting and scrolling completion candidates wit
     (vertico-carousel-mode))
 #+end_src
 
-*** [[https://github.com/kn66/vertico-buffer-frame][vertico-buffer-frame]]
-
-This package displays vertico-buffer in a child frame.
-It also includes a preview feature.
+*** [[https://github.com/kn66/vertico-monocle][vertico-monocle]]
 
 #+begin_src emacs-lisp
-  (use-package vertico-buffer-frame
-    :vc ( :url "https://github.com/kn66/vertico-buffer-frame.git"
+  (use-package vertico-monocle
+    :vc ( :url "https://github.com/kn66/vertico-monocle.git"
           :rev :newest)
-    ;; :load-path "~/.emacs.d/lisp/vertico-buffer-frame/"
     :after vertico
     :demand t
-    :bind ( :map vertico-map
-            ("C-t" . vertico-buffer-frame-toggle-preview))
     :config
-    (setopt vertico-buffer-frame-golden-ratio-scale 1.0
-            vertico-buffer-frame-auto-width t)
-    (vertico-buffer-frame-mode))
+    (vertico-monocle-mode))
 #+end_src
 
 ** AI (Artificial Intelligence)
