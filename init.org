@@ -1714,6 +1714,20 @@ This is a custom package that displays a cat in the center of the screen when a 
     :defer t)
 #+end_src
 
+*** commonmark-gfm
+
+This package renders CommonMark and GitHub Flavored Markdown to HTML inside Emacs.
+
+#+begin_src emacs-lisp
+  (use-package commonmark-gfm
+    :vc ( :url "https://github.com/kn66/commonmark-gfm.el"
+          :rev :newest)
+    ;; :load-path "~/.emacs.d/lisp/commonmark-gfm.el/"
+    :config
+    (setq markdown-command #'commonmark-gfm-markdown-command)
+    (setq markdown-command-needs-filename nil))
+#+end_src
+
 *** agent-shell
 
 #+begin_src emacs-lisp
