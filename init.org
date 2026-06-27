@@ -139,7 +139,8 @@ Emacs 31 includes this as a standard feature.
     ;; :load-path "~/.emacs.d/lisp/package-upgrade-guard.el/"
     :after package
     :config
-    (package-upgrade-guard-mode))
+    (setopt package-upgrade-guard-diff-mode 'security)
+    (package-upgrade-guard-mode ))
 #+end_src
 
 *** use-package
