@@ -791,8 +791,13 @@ Pressing RET inserts a newline when no completion candidate is selected, and sel
     :vc ( :url "https://github.com/kn66/flex-x"
           :rev :newest)
     :config
-    (setopt completion-styles '(flex-x basic)
-            flex-x-extra-pattern-function 'migemo-get-pattern))
+    (setopt completion-styles '(flex-x basic))
+
+    (with-eval-after-load 'migemo
+      (setopt flex-x-extra-pattern-function 'migemo-get-pattern))
+
+    (with-eval-after-load 'gnus
+      (setopt gnus-completion-styles '(flex-x basic))))
 #+end_src
 
 ** [[https://github.com/minad/vertico][vertico]]
