@@ -528,7 +528,8 @@ Basic settings for ~org-mode~.
     :defer t
     :init
     (setopt org-return-follows-link t  ; Open links with the Return key.
-            org-default-notes-file "~/org/inbox.org"))
+            org-default-notes-file "~/org/inbox.org"
+            org-log-done 'time))
 #+end_src
 
 *** org-agenda
@@ -541,7 +542,8 @@ Here, the target directory is set to ~/org/~.
     :defer t
     :ensure nil
     :config
-    (setopt org-agenda-files '("~/org/")))
+    (setopt org-agenda-files '("~/org/"))
+    (add-to-list 'org-agenda-custom-commands '("D" "Old done tasks" tags "TODO=\"DONE\"+CLOSED<=\"<-7d>\"")))
 #+end_src
 
 *** [[https://protesilaos.com/emacs/denote][denote]]
