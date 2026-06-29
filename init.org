@@ -1572,8 +1572,7 @@ This package automatically adjusts code indentation in real time.
     :vc ( :url "https://github.com/kn66/dired-clipboard.el"
           :rev :newest)
     ;; :load-path "~/.emacs.d/lisp/dired-clipboard.el/"
-    :config
-    (dired-clipboard-mode))
+    :hook (dired-mode . dired-clipboard-mode))
 #+end_src
 
 ** eglot
