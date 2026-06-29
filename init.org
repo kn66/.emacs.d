@@ -167,8 +167,17 @@ It has been built into Emacs since Emacs 29.
     (setopt nano-font-family-monospaced "更紗等幅ゴシック J"
             nano-font-family-proportional "更紗ゴシック J"
             nano-font-size 12
-            nano-color-faded "#78909C"
-            nano-color-popout "#E64A19")
+
+            ;; Ergonomic light palette: warm background, restrained contrast.
+            nano-color-background "#FAF7EF"
+            nano-color-foreground "#3F4A4D"
+            nano-color-strong     "#1F2933"
+            nano-color-faded      "#7A8A8E"
+            nano-color-subtle     "#EDE7DA"
+            nano-color-highlight  "#F3EDE1"
+            nano-color-salient    "#2F80B7"
+            nano-color-popout     "#B85C2E"
+            nano-color-critical   "#C62828")
     (nano-refresh-theme))
 #+end_src
 
