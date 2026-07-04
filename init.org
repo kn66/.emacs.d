@@ -245,8 +245,9 @@ This makes it possible to open files quickly in the existing Emacs process.
 #+begin_src emacs-lisp
   (use-package server
     :ensure nil
-    :init
-    (server-mode))
+    :config
+    (unless (server-running-p)
+      (server-start)))
 #+end_src
 
 *** Save the Last Cursor Position
