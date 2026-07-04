@@ -1754,18 +1754,6 @@ This package renders CommonMark and GitHub Flavored Markdown to HTML inside Emac
     (setq markdown-command-needs-filename nil))
 #+end_src
 
-*** agent-shell
-
-#+begin_src emacs-lisp
-  (use-package agent-shell
-    :config
-    (with-eval-after-load 'agent-shell-openai
-      (setq agent-shell-openai-authentication
-            (agent-shell-openai-make-authentication :login t))
-      (setq agent-shell-openai-codex-acp-command
-            '("npx" "--yes" "@zed-industries/codex-acp"))))
-#+end_src
-
 ** Other Convenient Functions
 
 *** Convert Data Extracted from a Database into an IN Clause
