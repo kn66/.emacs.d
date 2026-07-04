@@ -613,7 +613,8 @@ I store them in the .skk directory under the user directory.
   (use-package ddskk
     :init
     (setopt default-input-method "japanese-skk"
-            skk-dcomp-multiple-activate t)
+            skk-dcomp-multiple-activate t
+            skk-status-indicator 'minor-mode)
 
     (cond (IS-LINUX
            (setopt skk-large-jisyo "~/.emacs.d/skk-get-jisyo/SKK-JISYO.L"
