@@ -924,16 +924,14 @@ This Vertico extension enables selecting and scrolling completion candidates wit
     (vertico-carousel-mode))
 #+end_src
 
-*** [[https://github.com/kn66/vertico-monocle][vertico-monocle]]
+*** vertico-buffer
 
 #+begin_src emacs-lisp
-  (use-package vertico-monocle
-    :vc ( :url "https://github.com/kn66/vertico-monocle.git"
-          :rev :newest)
+  (use-package vertico-buffer
+    :ensure nil
     :after vertico
-    :demand t
     :config
-    (vertico-monocle-mode))
+    (vertico-buffer-mode))
 #+end_src
 
 ** AI (Artificial Intelligence)
