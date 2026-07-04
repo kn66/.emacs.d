@@ -1759,21 +1759,25 @@ This package renders CommonMark and GitHub Flavored Markdown to HTML inside Emac
 *** Convert Data Extracted from a Database into an IN Clause
 
 Read the selected text line by line, convert it to a SQL IN clause format, such as IN ('A', 'B', 'C'), and replace the selection.
-Duplicate lines are removed. This is useful for formatting ID lists copied from a database into SQL queries.
+Duplicate lines are removed and single quotes are escaped. This is useful for formatting ID lists copied from a database into SQL queries.
 
 #+begin_src emacs-lisp
   (defun my/replace-region-with-in-clause (start end)
     "Convert the selected region from START to END into a SQL IN clause and replace the original selection."
     (interactive "r") ; Callable when the region is active.
     (let* ((region-content (buffer-substring-no-properties start end)) ; Get the selected text.
-           (records (split-string region-content "\n" t)) ; Split into a list by newlines, ignoring empty lines.
+           (records (split-string region-content "[\r\n]+" t "[[:space:]]+"))
            (unique-records (delete-dups records))        ; Remove duplicates.
-           ;; Wrap each record in single quotes.
-           (quoted-records (mapcar (lambda (record) (format "'%s'" record)) unique-records))
-           ;; Generate the IN clause string.
-           (in-clause (format "IN (%s)" (mapconcat 'identity quoted-records ", "))))
+           (quoted-records
+            (mapcar (lambda (record)
+                      (format "'%s'"
+                              (replace-regexp-in-string "'" "''" record t t)))
+                    unique-records)))
+      (unless unique-records
+        (user-error "No records found in region"))
       (delete-region start end) ; Delete the original selection.
-      (insert in-clause)))      ; Insert the generated IN clause.
+      (insert (format "IN (%s)"
+                      (mapconcat 'identity quoted-records ", "))))) ; Insert the generated IN clause.
 #+end_src
 
 ** footer
