@@ -2,24 +2,25 @@
 #+AUTHOR: kn66
 #+LANGUAGE: en
 #+OPTIONS: toc:2 num:nil
+#+PROPERTY: header-args:emacs-lisp :tangle init.el
 
 * Introduction
 
 This file describes my Emacs configuration in literate programming format.
-It uses ~org-babel-load-file~ to generate ~init.el~.
+Emacs Lisp source blocks are tangled to ~init.el~.
 
 ** Features
 
 - *Modern package management*: Uses ~use-package~ and ~package.el~
 - *Fast completion UI*: Combines Corfu, Vertico, Consult, and Embark
 - *Tree-sitter support*: Accurate syntax highlighting and code analysis
-- *LSP support*: Multi-language support through ~lsp-mode~
+- *LSP support*: Multi-language support through ~eglot~
 - *Multi-OS support*: Supports Windows and Linux (macOS is untested)
 
 ** Usage
 
 1. Place this file at ~~/.emacs.d/init.org~.
-2. Start Emacs and run ~M-x org-babel-load-file~.
+2. Open it and run ~M-x org-babel-tangle~ to generate ~init.el~.
 3. The generated ~init.el~ will be loaded from the next startup.
 
 ** Required External Tools
@@ -1445,7 +1446,7 @@ This package implements code folding by using Tree-sitter parse information.
     (global-treesit-fold-mode)
     (global-treesit-fold-indicators-mode)
 
-    ;; Override the overlay creation function to avoid conflicts with lsp-mode and flymake.
+    ;; Override the overlay creation function to avoid conflicts with Eglot and flymake.
     (with-eval-after-load 'treesit-fold-indicators
       (defun treesit-fold-indicators--create-overlay-at-point ()
         "Create indicator overlay at current point."
