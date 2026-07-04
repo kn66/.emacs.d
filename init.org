@@ -1498,29 +1498,39 @@ On Windows, this assumes ~cmigemo~ is installed through Scoop.
 
 #+begin_src emacs-lisp
   (use-package migemo
+    :if (executable-find "cmigemo")
     :init
     ;; Configure the Migemo command; use cmigemo by default.
     (setopt migemo-command "cmigemo")
     (setopt migemo-options '("-q" "--emacs")) ; Options passed to cmigemo.
 
     ;; Configure the Migemo dictionary path; adjust this for the environment.
-    (when IS-WINDOWS
+    (let ((dictionary
+           (cond
+            (IS-WINDOWS
+             ;; Change the path to match the environment.
+             ;; Example for installing cmigemo with Scoop:
+             ;; "C:/Users/<USERNAME>/scoop/apps/cmigemo/current/cmigemo-mingw64/share/migemo/utf-8/migemo-dict"
+             (expand-file-name "scoop/apps/cmigemo/current/cmigemo-mingw64/share/migemo/utf-8/migemo-dict"
+                               (getenv "USERPROFILE")))
+            (IS-LINUX
+             "/usr/share/cmigemo/utf-8/migemo-dict"))))
+      (when dictionary
+        (setopt migemo-dictionary dictionary)))
+
+    (when (and migemo-dictionary
+               (not (file-readable-p migemo-dictionary)))
       (setopt migemo-dictionary
-              ;; Change the path to match the environment.
-              ;; Example for installing cmigemo with Scoop:
-              ;; "C:/Users/<USERNAME>/scoop/apps/cmigemo/current/cmigemo-mingw64/share/migemo/utf-8/migemo-dict"
-              (expand-file-name "scoop/apps/cmigemo/current/cmigemo-mingw64/share/migemo/utf-8/migemo-dict"
-                                (getenv "USERPROFILE"))))
-    (when IS-LINUX
-      (setopt migemo-dictionary
-              "/usr/share/cmigemo/utf-8/migemo-dict")) ; Example dictionary path on Linux.
+              nil))
 
     (setopt migemo-user-dictionary nil)   ; Do not use a user dictionary.
     (setopt migemo-regex-dictionary nil)  ; Do not use a regular expression dictionary.
     (setopt migemo-coding-system 'utf-8-unix) ; Dictionary encoding.
 
     :config
-    (migemo-init)) ; Initialize Migemo.
+    (if migemo-dictionary
+        (migemo-init) ; Initialize Migemo.
+      (message "Skip migemo-init: Migemo dictionary is not readable.")))
 #+end_src
 
 ** [[https://github.com/editorconfig/editorconfig-emacs][editorconfig]] (.editorconfig Support)
