@@ -28,8 +28,6 @@ This separates automatically generated custom settings from manually written con
 
 #+begin_src emacs-lisp
   (setq custom-file (locate-user-emacs-file "custom.el"))
-  (when (file-exists-p (expand-file-name custom-file))
-    (load-file (expand-file-name custom-file)))
 #+end_src
 
 ** Maximize the Frame
