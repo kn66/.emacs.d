@@ -707,11 +707,6 @@ It makes it easy to add and manage completion sources, which are functions that 
 
 #+begin_src emacs-lisp
   (use-package cape
-    :init
-    (with-eval-after-load 'lsp-completion
-      (advice-add 'lsp-completion-at-point
-                  :around #'cape-wrap-noninterruptible))
-
     :config
     (require 'cl-lib)
     (autoload 'cape-keyword "cape-keyword" nil t)
@@ -755,8 +750,7 @@ It makes it easy to add and manage completion sources, which are functions that 
 
     (dolist (hook '(after-change-major-mode-hook
                     corfu-mode-hook
-                    eglot-managed-mode-hook
-                    lsp-completion-mode-hook))
+                    eglot-managed-mode-hook))
       (add-hook hook #'my/cape-setup-capfs)))
 #+end_src
 
@@ -1590,8 +1584,16 @@ This package automatically adjusts code indentation in real time.
 
 ** eglot
 
-This section collects helper packages around ~eglot~.
+This section configures Emacs's built-in LSP client, ~eglot~, and helper packages around it.
 It covers language server installation, shared configuration, and snippet integration.
+
+*** eglot
+
+#+begin_src emacs-lisp
+  (use-package eglot
+    :ensure nil
+    :defer t)
+#+end_src
 
 *** [[https://github.com/kn66/eglot-multi-preset][eglot-multi-preset]]
 
@@ -1630,12 +1632,8 @@ This package makes snippet information obtained from LSP servers available throu
     :vc ( :url "https://github.com/svaante/lsp-snippet"
           :rev :newest)
     :config
-    (when (featurep 'lsp-mode)
-      ;; Initialize lsp-snippet -> tempel in lsp-mode
-      (lsp-snippet-tempel-lsp-mode-init))
-    (when (featurep 'eglot)
-      ;; Initialize lsp-snippet -> tempel in eglot
-      (lsp-snippet-tempel-eglot-init)))
+    ;; Initialize lsp-snippet -> tempel in Eglot.
+    (lsp-snippet-tempel-eglot-init))
 #+end_src
 
 ** language (Programming Language Modes)
