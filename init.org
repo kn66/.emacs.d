@@ -173,7 +173,26 @@ It has been built into Emacs since Emacs 29.
     (setopt nano-font-family-monospaced "更紗等幅ゴシック J"
             nano-font-family-proportional "更紗ゴシック J"
             nano-font-size 12)
-    (nano-refresh-theme))
+    (nano-refresh-theme)
+
+    (with-eval-after-load 'nano-modeline
+      (defun my/nano-modeline-coding-system ()
+        (symbol-name buffer-file-coding-system))
+
+      (defun nano-modeline-default-mode ()
+        (let ((buffer-name (format-mode-line "%b"))
+              (mode-name   (nano-mode-name))
+              (branch      (vc-branch))
+              (position    (format-mode-line "%l:%c"))
+              (coding      (my/nano-modeline-coding-system)))
+          (nano-modeline-compose
+           (nano-modeline-status)
+           buffer-name
+           (concat "(" mode-name
+                   (if branch
+                       (concat ", " (propertize branch 'face 'italic)))
+                   ")")
+           (concat coding " " position))))))
 #+end_src
 
 *** nano-vertico
