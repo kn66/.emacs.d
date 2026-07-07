@@ -1261,12 +1261,12 @@ against completion candidates from Vertico or Consult and various targets in buf
     ;; jarring since the message shown in the minibuffer can be more
     ;; than one line, causing the modeline to move up and down:
 
-    ;; (add-hook 'eldoc-documentation-functions #'embark-eldoc-first-target)
-    ;; (setopt eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
+    (add-hook 'eldoc-documentation-functions #'embark-eldoc-first-target)
+    (setopt eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
 
     ;; Add Embark to the mouse context menu. Also enable `context-menu-mode'.
-    ;; (context-menu-mode 1)
-    ;; (add-hook 'context-menu-functions #'embark-context-menu 100)
+    (context-menu-mode 1)
+    (add-hook 'context-menu-functions #'embark-context-menu 100)
 
     :config
 
