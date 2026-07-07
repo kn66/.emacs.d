@@ -35,7 +35,7 @@ Emacs Lisp source blocks are tangled to ~init.el~.
 ** header
 
 #+begin_src emacs-lisp
-  ;;; package --- Initialization file -*- lexical-binding: t; -*-
+  ;;; package --- Initialization file -*- lexical-binding: t; coding: utf-8; -*-
   ;;; Commentary:
   ;;; Configure Emacs globally and manage packages.
   ;;; Code:
