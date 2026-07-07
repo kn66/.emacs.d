@@ -112,6 +112,7 @@ It automatically commits state changes during install, delete, and upgrade opera
           :rev :newest)
     ;; :load-path "~/.emacs.d/lisp/package-git.el/"
     :after package
+    :defer 5
     :config
     (package-git-enable))
 #+end_src
@@ -126,6 +127,7 @@ Implements retry handling when network errors occur during package installation.
           :rev :newest)
     ;; :load-path "~/.emacs.d/lisp/package-retry.el/"
     :after package
+    :defer 5
     :config
     (package-retry-mode))
 #+end_src
@@ -141,9 +143,10 @@ Emacs 31 includes this as a standard feature.
     :vc ( :url "https://github.com/kn66/package-upgrade-guard.el.git" :rev :newest)
     ;; :load-path "~/.emacs.d/lisp/package-upgrade-guard.el/"
     :after package
+    :defer 5
     :config
     (setopt package-upgrade-guard-diff-mode 'security)
-    (package-upgrade-guard-mode ))
+    (package-upgrade-guard-mode))
 #+end_src
 
 *** use-package
@@ -195,6 +198,7 @@ It has been built into Emacs since Emacs 29.
     :vc ( :url "https://github.com/kn66/halo.el.git"
           :rev :newest)
     ;; :load-path "~/.emacs.d/lisp/halo.el/"
+    :defer 1
     :config
     (halo-global-mode))
 #+end_src
@@ -235,6 +239,7 @@ This makes it possible to open files quickly in the existing Emacs process.
 #+begin_src emacs-lisp
   (use-package server
     :ensure nil
+    :defer 1
     :config
     (unless (server-running-p)
       (server-start)))
@@ -247,7 +252,8 @@ Restore the cursor position from the previous visit when opening a file.
 #+begin_src emacs-lisp
   (use-package saveplace
     :ensure nil
-    :init
+    :defer 1
+    :config
     (save-place-mode))
 #+end_src
 
@@ -258,8 +264,10 @@ Keep a list of recently opened files so they can be accessed again easily.
 #+begin_src emacs-lisp
   (use-package recentf
     :ensure nil
-    :init
-    (setopt recentf-max-saved-items 1024) ;; Maximum number of history entries to save.
+    :defer 1
+    :config
+    (setopt recentf-max-saved-items 1024 ; Maximum number of history entries to save.
+            recentf-auto-cleanup 'never)
     (recentf-mode))
 #+end_src
 
@@ -270,7 +278,8 @@ Save minibuffer input history, search and replace history, and similar data acro
 #+begin_src emacs-lisp
   (use-package savehist
     :ensure nil
-    :init
+    :defer 1
+    :config
     (savehist-mode))
 #+end_src
 
@@ -292,7 +301,8 @@ I created a custom package to solve that problem.
 
 #+begin_src emacs-lisp
   (use-package autorevert
-    :init
+    :defer 2
+    :config
     (global-auto-revert-mode))
 #+end_src
 
@@ -341,7 +351,8 @@ Improve performance when opening files that contain very long lines.
 
 #+begin_src emacs-lisp
   (use-package so-long
-    :init
+    :defer 1
+    :config
     (global-so-long-mode))
 #+end_src
 
@@ -451,7 +462,7 @@ Because actual mail server information contains personal information, detailed s
 #+begin_src emacs-lisp
   (use-package gnus
     :ensure nil
-    :after bbdb
+    :defer 10
     :config
     ;; Check POP3 every 5 minutes.
     (gnus-demon-add-handler
@@ -467,6 +478,7 @@ BBDB (The Insidious Big Brother Database) is a contact management system for Ema
 
 #+begin_src emacs-lisp
   (use-package bbdb
+    :defer t
     :init
     (setopt bbdb-file (locate-user-emacs-file "bbdb")
             bbdb-mua-auto-action 'create
@@ -491,6 +503,7 @@ It works with ~gnus-demon~ to check mail periodically and notify when new messag
 
 #+begin_src emacs-lisp
   (use-package gnus-desktop-notify
+    :after gnus
     :config
     (gnus-desktop-notify-mode)
     (gnus-demon-add-rescan))
@@ -601,6 +614,7 @@ I store them in the .skk directory under the user directory.
 
 #+begin_src emacs-lisp
   (use-package ddskk
+    :defer t
     :init
     (setopt default-input-method "japanese-skk"
             skk-dcomp-multiple-activate t
@@ -1279,10 +1293,11 @@ Visually display uncommitted changes in the Git repository, such as added, modif
 
 #+begin_src emacs-lisp
   (use-package diff-hl
+    :defer 2
     ;; Also update diff-hl before and after Magit buffer refreshes.
     :hook ((magit-pre-refresh . diff-hl-magit-pre-refresh)
            (magit-post-refresh . diff-hl-magit-post-refresh))
-    :init
+    :config
     (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
     (global-diff-hl-mode)                 ; Enable diff-hl globally.
     (global-diff-hl-show-hunk-mouse-mode) ; Show change hunks on mouse hover.
@@ -1308,7 +1323,8 @@ It helps with remembering complex keybindings.
 
 #+begin_src emacs-lisp
   (use-package which-key
-    :init
+    :defer 1
+    :config
     (which-key-mode))
 #+end_src
 
@@ -1383,7 +1399,8 @@ A similar package is [[https://github.com/Fuco1/smartparens][smartparens]].
 
 #+begin_src emacs-lisp
   (use-package puni
-    :init
+    :defer 1
+    :config
     (puni-global-mode))
 #+end_src
 
@@ -1487,6 +1504,7 @@ On Windows, this assumes ~cmigemo~ is installed through Scoop.
 #+begin_src emacs-lisp
   (use-package migemo
     :if (executable-find "cmigemo")
+    :defer 3
     :init
     ;; Configure the Migemo command; use cmigemo by default.
     (setopt migemo-command "cmigemo")
@@ -1557,7 +1575,8 @@ This package detects and configures indentation automatically.
 
 #+begin_src emacs-lisp
   (use-package dtrt-indent
-    :init
+    :defer 2
+    :config
     (dtrt-indent-global-mode))
 #+end_src
 
@@ -1686,9 +1705,11 @@ This is a custom package that displays a cat in the center of the screen when a 
     :vc ( :url "https://github.com/kn66/pomo-cat.el"
           :rev :newest)
     ;; :load-path "~/.emacs.d/lisp/pomo-cat.el/"
+    :defer 5
     :init
     (setopt pomo-cat-use-dedicated-frame 'topmost
             pomo-cat-dedicated-frame-position 'bottom-right)
+    :config
     (pomo-cat-start))
 #+end_src
 
@@ -1699,6 +1720,7 @@ This is a custom package that displays a cat in the center of the screen when a 
     :vc ( :url "https://github.com/kn66/elisp-quality-ai"
           :rev :newest)
     ;; :load-path "~/.emacs.d/lisp/elisp-quality-ai/"
+    :defer t
     )
 #+end_src
 
@@ -1738,6 +1760,7 @@ This package renders CommonMark and GitHub Flavored Markdown to HTML inside Emac
     :vc ( :url "https://github.com/kn66/commonmark-gfm.el"
           :rev :newest)
     ;; :load-path "~/.emacs.d/lisp/commonmark-gfm.el/"
+    :defer t
     :config
     (setq markdown-command #'commonmark-gfm-markdown-command)
     (setq markdown-command-needs-filename nil))
