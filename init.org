@@ -972,6 +972,11 @@ This Vertico extension enables selecting and scrolling completion candidates wit
   (use-package vertico-buffer
     :ensure nil
     :after vertico
+    :custom
+    (vertico-buffer-display-action
+     '(display-buffer-use-least-recent-window
+       (window-min-height . 12)
+       (window-height . 12)))
     :config
     (vertico-buffer-mode))
 #+end_src
