@@ -744,51 +744,57 @@ It makes it easy to add and manage completion sources, which are functions that 
 
 #+begin_src emacs-lisp
   (use-package cape
+    :hook (((prog-mode
+             text-mode
+             conf-mode
+             eglot-managed-mode
+             lsp-completion-mode) . my/cape-setup-capfs))
     :config
     (require 'cl-lib)
     (autoload 'cape-keyword "cape-keyword" nil t)
     (autoload 'tempel-complete "tempel" nil t)
 
-    (defconst my/cape-extra-capfs
-      '(cape-dabbrev
-        cape-keyword
-        cape-elisp-block
-        tempel-complete))
-
     (defvar-local my/cape--base-capfs nil)
+    (defvar-local my/cape--super-capf nil)
 
-    (defun my/cape--managed-capf-p (capf)
-      (or (memq capf '(t cape-file my/cape-super-capf))
-          (memq capf my/cape-extra-capfs)))
-
-    (defun my/cape--remember-capfs ()
-      (let ((capfs (cl-remove-if #'my/cape--managed-capf-p
-                                  completion-at-point-functions)))
-        (when capfs
-          (setq-local my/cape--base-capfs
-                      (cl-delete-duplicates
-                       (append capfs my/cape--base-capfs)
-                       :test #'eq)))))
-
-    (defun my/cape--super-capf ()
-      (apply #'cape-wrap-super
-             (append my/cape--base-capfs my/cape-extra-capfs)))
-
-    (defalias 'my/cape-super-capf
-      (cape-capf-sort
-       (cape-capf-nonexclusive
-        (cape-capf-buster #'my/cape--super-capf))))
+    (defvar my/cape--dabbrev-min-2-capf
+      (cape-capf-prefix-length #'cape-dabbrev 2))
 
     (defun my/cape-setup-capfs ()
       (unless (minibufferp)
-        (my/cape--remember-capfs)
+        (let ((capfs (cl-remove-if
+                      (lambda (capf)
+                        (or (memq capf '(t
+                                         cape-file
+                                         cape-elisp-block
+                                         tempel-complete
+                                         cape-keyword))
+                            (eq capf my/cape--super-capf)
+                            (eq capf my/cape--dabbrev-min-2-capf)
+                            (not (functionp capf))))
+                      completion-at-point-functions)))
+          (when capfs
+            (setq-local my/cape--base-capfs
+                        (cl-delete-duplicates
+                         (append capfs my/cape--base-capfs)
+                         :test #'eq))))
+        (setq-local my/cape--super-capf
+                    (lambda ()
+                      (funcall
+                       (cape-capf-noninterruptible
+                        (cape-capf-buster
+                         (cape-capf-sort
+                          (cape-capf-nonexclusive
+                           (apply #'cape-capf-super
+                                  (append (list #'tempel-complete)
+                                          my/cape--base-capfs
+                                          (list my/cape--dabbrev-min-2-capf
+                                                #'cape-keyword))))))))))
         (setq-local completion-at-point-functions
-                    '(cape-file my/cape-super-capf t))))
-
-    (dolist (hook '(after-change-major-mode-hook
-                    corfu-mode-hook
-                    eglot-managed-mode-hook))
-      (add-hook hook #'my/cape-setup-capfs)))
+                    (list #'cape-file
+                          #'cape-elisp-block
+                          my/cape--super-capf
+                          t)))))
 #+end_src
 
 *** [[https://codeberg.org/akib/emacs-corfu-terminal][corfu-terminal]]
