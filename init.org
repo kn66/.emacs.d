@@ -1657,11 +1657,14 @@ This package smoothly configures eglot with [[https://github.com/joaotavora/rass
 
 #+begin_src emacs-lisp
   (use-package eglot-multi-preset
+    :after eglot
     :vc ( :url "https://github.com/kn66/eglot-multi-preset.git"
           :rev :newest)
     ;; :load-path "~/.emacs.d/lisp/eglot-multi-preset/"
     :after eglot
     :config
+    (setopt eglot-multi-preset-executable-overrides
+            '(("rass" . "rass.exe")))
     (eglot-multi-preset-mode 1))
 #+end_src
 
