@@ -162,20 +162,48 @@ It has been built into Emacs since Emacs 29.
             ))
 #+end_src
 
+** [[https://github.com/kn66/folio-theme.el][folio-theme]]
+
+Load the custom ~folio~ theme to provide the main color palette for the frame.
+
+#+begin_src emacs-lisp
+  (use-package folio-theme
+    :vc ( :url "https://github.com/kn66/folio-theme.el"
+          :rev :newest)
+    :config
+    (load-theme 'folio t))
+#+end_src
+
 ** nano-emacs
+
+Configure the visual foundation from ~nano-emacs~, including faces, layout,
+defaults, session handling, splash screen, and a custom modeline.
 
 #+begin_src emacs-lisp
   (use-package nano
     :vc ( :url "https://github.com/rougier/nano-emacs"
           :rev :newest)
+    :no-require t
     :demand t
     :config
-    (setopt nano-font-family-monospaced "更紗等幅ゴシック J"
-            nano-font-family-proportional "更紗ゴシック J"
-            nano-font-size 12)
-    (nano-refresh-theme)
+    (require 'nano-base-colors)
+    (require 'nano-faces)
+    (nano-faces)
+
+    (require 'nano-layout)
+    (require 'nano-defaults)
+    (require 'nano-session)
+    (require 'nano-modeline)
+    (require 'nano-help)
+    (require 'nano-splash)
 
     (with-eval-after-load 'nano-modeline
+      (remove-hook 'window-configuration-change-hook #'nano-modeline-update-windows)
+      (setq-default mode-line-format nil)
+      (dolist (window (window-list))
+        (set-window-parameter window 'mode-line-format 'none))
+      (force-mode-line-update t)
+
       (defun my/nano-modeline-coding-system ()
         (symbol-name buffer-file-coding-system))
 
@@ -195,7 +223,10 @@ It has been built into Emacs since Emacs 29.
            (concat coding " " position))))))
 #+end_src
 
-*** nano-vertico
+*** [[https://github.com/rougier/nano-vertico][nano-vertico]]
+
+Apply the NANO visual style to Vertico, including custom selection markers and
+completion line symbols.
 
 #+begin_src emacs-lisp
   (use-package nano-vertico
@@ -210,13 +241,69 @@ It has been built into Emacs since Emacs 29.
     (nano-vertico-mode))
 #+end_src
 
-*** halo
+*** [[https://protesilaos.com/emacs/fontaine][fontaine]]
+
+Manage font presets for each operating system and restore the latest selected
+preset when Emacs starts.
+
+#+begin_src emacs-lisp
+  (use-package fontaine
+    :config
+    (cond (IS-LINUX
+           (setopt fontaine-presets
+                   '((regular
+                      :default-family "更紗等幅ゴシック J"
+                      :fixed-pitch-family "更紗等幅ゴシック J"
+                      :variable-pitch-family "更紗ゴシック J"
+                      :italic-family "更紗等幅ゴシック J"
+                      :default-height 120)
+                     (large
+                      :default-family "更紗等幅ゴシック J"
+                      :variable-pitch-family "更紗ゴシック J"))))
+
+          (IS-WINDOWS
+           (setopt fontaine-presets
+                   '((regular
+                      :default-family "PlemolJP"
+                      :fixed-pitch-family "PlemolJP"
+                      :variable-pitch-family "IBM Plex Sans JP"
+                      :italic-family "PlemolJP"
+                      :default-height 110)
+                     (large
+                      :default-family "PlemolJP"
+                      :variable-pitch-family "IBM Plex Sans JP")))))
+
+    (fontaine-set-preset (or (fontaine-restore-latest-preset) 'regular))
+    (add-hook 'kill-emacs-hook #'fontaine-store-latest-preset))
+#+end_src
+
+*** [[https://protesilaos.com/emacs/spacious-padding][spacious-padding]]
+
+Add consistent internal spacing around windows and UI elements to make the frame
+layout more comfortable.
+
+#+begin_src emacs-lisp
+  (use-package spacious-padding
+    :config
+    (setopt spacious-padding-widths
+            '( :internal-border-width 24
+               :header-line-width nil
+               :mode-line-width nil
+               :custom-button-width nil
+               :tab-width nil
+               :right-divider-width nil
+               :scroll-bar-width nil
+               :fringe-width 1))
+    (spacious-padding-mode))
+#+end_src
+
+*** [[https://github.com/kn66/halo.el.git][halo]]
 
 #+begin_src emacs-lisp
   (use-package halo
-    :vc ( :url "https://github.com/kn66/halo.el.git"
-          :rev :newest)
-    ;; :load-path "~/.emacs.d/lisp/halo.el/"
+    ;; :vc ( :url "https://github.com/kn66/halo.el.git"
+    ;;       :rev :newest)
+    :load-path "~/.emacs.d/lisp/halo.el/"
     :defer 1
     :config
     (halo-global-mode))
