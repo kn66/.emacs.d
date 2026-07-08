@@ -649,8 +649,12 @@ I store them in the .skk directory under the user directory.
   (use-package ddskk
     :defer t
     :init
+    (require 'skk-study)
     (setopt default-input-method "japanese-skk"
             skk-dcomp-multiple-activate t
+            skk-dcomp-activate t
+            skk-show-inline t
+            skk-sticky-key ";"
             skk-status-indicator 'minor-mode)
 
     (cond (IS-LINUX
