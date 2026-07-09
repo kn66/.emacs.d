@@ -301,9 +301,9 @@ layout more comfortable.
 
 #+begin_src emacs-lisp
   (use-package halo
-    ;; :vc ( :url "https://github.com/kn66/halo.el.git"
-    ;;       :rev :newest)
-    :load-path "~/.emacs.d/lisp/halo.el/"
+    :vc ( :url "https://github.com/kn66/halo.el.git"
+          :rev :newest)
+    ;; :load-path "~/.emacs.d/lisp/halo.el/"
     :defer 1
     :config
     (halo-global-mode))
