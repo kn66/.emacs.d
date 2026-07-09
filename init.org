@@ -1736,6 +1736,47 @@ This package automatically adjusts code indentation in real time.
     :hook (dired-mode . dired-clipboard-mode))
 #+end_src
 
+** [[https://github.com/rainstormstudio/nerd-icons.el][nerd-icons]]
+
+This package provides Nerd Font icons for Emacs UI integrations. It is the base
+icon set used by the companion packages in this section.
+
+#+begin_src emacs-lisp
+  (use-package nerd-icons)
+#+end_src
+
+*** [[https://github.com/rainstormstudio/nerd-icons-completion][nerd-icons-completion]]
+
+This package adds Nerd Font icons to completion candidates, making buffers,
+files, and symbols easier to distinguish at a glance.
+
+#+begin_src emacs-lisp
+  (use-package nerd-icons-completion
+    :hook (after-init . nerd-icons-completion-mode))
+#+end_src
+
+*** [[https://github.com/rainstormstudio/nerd-icons-dired][nerd-icons-dired]]
+
+This package displays Nerd Font icons next to files and directories in Dired
+buffers.
+
+#+begin_src emacs-lisp
+  (use-package nerd-icons-dired
+    :hook (dired-mode . nerd-icons-dired-mode))
+#+end_src
+
+*** [[https://github.com/LuigiPiucco/nerd-icons-corfu][nerd-icons-corfu]]
+
+This package shows Nerd Font icons in Corfu completion popups by adding the
+~nerd-icons~ formatter to Corfu's margin formatters.
+
+#+begin_src emacs-lisp
+  (use-package nerd-icons-corfu
+    :after corfu nerd-icons
+    :config
+    (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))
+#+end_src
+
 ** eglot
 
 This section configures Emacs's built-in LSP client, ~eglot~, and helper packages around it.
