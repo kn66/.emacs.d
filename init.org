@@ -252,25 +252,25 @@ preset when Emacs starts.
     (cond (IS-LINUX
            (setopt fontaine-presets
                    '((regular
-                      :default-family "更紗等幅ゴシック J"
-                      :fixed-pitch-family "更紗等幅ゴシック J"
-                      :variable-pitch-family "更紗ゴシック J"
-                      :italic-family "更紗等幅ゴシック J"
+                      :default-family "PlemolJP Console NF"
+                      :fixed-pitch-family "PlemolJP Console NF"
+                      :variable-pitch-family "IBM Plex Sans JP"
+                      :italic-family "PlemolJP Console NF"
                       :default-height 120)
                      (large
-                      :default-family "更紗等幅ゴシック J"
-                      :variable-pitch-family "更紗ゴシック J"))))
+                      :default-family "PlemolJP Console NF"
+                      :variable-pitch-family "IBM Plex Sans JP"))))
 
           (IS-WINDOWS
            (setopt fontaine-presets
                    '((regular
-                      :default-family "PlemolJP"
-                      :fixed-pitch-family "PlemolJP"
+                      :default-family "PlemolJP Console NF"
+                      :fixed-pitch-family "PlemolJP Console NF"
                       :variable-pitch-family "IBM Plex Sans JP"
-                      :italic-family "PlemolJP"
+                      :italic-family "PlemolJP Console NF"
                       :default-height 110)
                      (large
-                      :default-family "PlemolJP"
+                      :default-family "PlemolJP Console NF"
                       :variable-pitch-family "IBM Plex Sans JP")))))
 
     (fontaine-set-preset (or (fontaine-restore-latest-preset) 'regular))
