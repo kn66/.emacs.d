@@ -1777,6 +1777,68 @@ This package shows Nerd Font icons in Corfu completion popups by adding the
     (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))
 #+end_src
 
+** evil
+
+This package provides Vim-style modal editing in Emacs. It is enabled globally,
+while buffers derived from ~special-mode~ start in Emacs state.
+
+#+begin_src emacs-lisp
+  (use-package evil
+    :init
+    (evil-mode)
+
+    (with-eval-after-load 'evil
+      (evil-set-initial-state 'special-mode 'emacs)))
+#+end_src
+
+*** evil-commentary
+
+This package adds Vim-style operators for commenting and uncommenting text. It
+is enabled globally for Evil buffers.
+
+#+begin_src emacs-lisp
+  (use-package evil-commentary
+    :after evil
+    :config
+    (evil-commentary-mode))
+#+end_src
+
+*** evil-surround
+
+This package provides operators for adding, changing, and deleting surrounding
+characters such as parentheses, quotes, and tags. It is enabled globally.
+
+#+begin_src emacs-lisp
+  (use-package evil-surround
+    :after evil
+    :config
+    (global-evil-surround-mode))
+#+end_src
+
+*** evil-matchit
+
+This package extends Evil's matching commands to jump between paired keywords,
+tags, and other language-specific structures. It is enabled globally.
+
+#+begin_src emacs-lisp
+  (use-package evil-matchit
+    :after evil
+    :config
+    (global-evil-matchit-mode))
+#+end_src
+
+*** evil-lion
+
+This package adds alignment operators inspired by vim-lion, allowing text to be
+aligned around a chosen character or pattern. It is enabled in Evil buffers.
+
+#+begin_src emacs-lisp
+  (use-package evil-lion
+    :after evil
+    :config
+    (evil-lion-mode))
+#+end_src
+
 ** eglot
 
 This section configures Emacs's built-in LSP client, ~eglot~, and helper packages around it.
