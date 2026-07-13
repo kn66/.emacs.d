@@ -1777,7 +1777,7 @@ This package shows Nerd Font icons in Corfu completion popups by adding the
     (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))
 #+end_src
 
-** evil
+** [[https://github.com/emacs-evil/evil][evil]]
 
 This package provides Vim-style modal editing in Emacs. It is enabled globally,
 while buffers derived from ~special-mode~ start in Emacs state.
@@ -1832,7 +1832,7 @@ is enabled globally for Evil buffers.
     (evil-commentary-mode))
 #+end_src
 
-*** evil-surround
+*** [[https://github.com/emacs-evil/evil-surround][evil-surround]]
 
 This package provides operators for adding, changing, and deleting surrounding
 characters such as parentheses, quotes, and tags. It is enabled globally.
@@ -1844,7 +1844,7 @@ characters such as parentheses, quotes, and tags. It is enabled globally.
     (global-evil-surround-mode))
 #+end_src
 
-*** evil-matchit
+*** [[https://github.com/redguardtoo/evil-matchit][evil-matchit]]
 
 This package extends Evil's matching commands to jump between paired keywords,
 tags, and other language-specific structures. It is enabled globally.
@@ -1856,7 +1856,7 @@ tags, and other language-specific structures. It is enabled globally.
     (global-evil-matchit-mode))
 #+end_src
 
-*** evil-lion
+*** [[https://github.com/edkolev/evil-lion][evil-lion]]
 
 This package adds alignment operators inspired by vim-lion, allowing text to be
 aligned around a chosen character or pattern. It is enabled in Evil buffers.
