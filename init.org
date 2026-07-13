@@ -1785,13 +1785,42 @@ while buffers derived from ~special-mode~ start in Emacs state.
 #+begin_src emacs-lisp
   (use-package evil
     :init
+    (setopt evil-want-keybinding nil
+            evil-symbol-word-search t
+            evil-kill-on-visual-paste nil)
     (evil-mode)
 
     (with-eval-after-load 'evil
       (evil-set-initial-state 'special-mode 'emacs)))
 #+end_src
 
-*** evil-commentary
+*** [[https://github.com/emacs-evil/evil-collection][evil-collection]]
+
+This package provides Evil-compatible keybindings and integrations for many
+Emacs modes, making their commands follow consistent Vim-style conventions.
+
+#+begin_src emacs-lisp
+  (use-package evil-collection
+    :after evil
+    :config
+    (evil-collection-init))
+#+end_src
+
+*** [[https://github.com/achyudh/evil-keypad][evil-keypad]]
+
+This package translates short sequences of unmodified keys into native Emacs
+keybindings, avoiding modifier-key chords. Here, ~SPC~ starts the keypad in
+normal and visual states.
+
+#+begin_src emacs-lisp
+  (use-package evil-keypad
+    :after evil
+    :config
+    (evil-define-key '(normal visual) 'global
+      (kbd "SPC") #'evil-keypad-start))
+#+end_src
+
+*** [[https://github.com/linktohack/evil-commentary][evil-commentary]]
 
 This package adds Vim-style operators for commenting and uncommenting text. It
 is enabled globally for Evil buffers.
