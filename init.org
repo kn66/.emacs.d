@@ -194,7 +194,6 @@ defaults, session handling, splash screen, and a custom modeline.
     (nano-faces)
 
     (require 'nano-layout)
-    (require 'nano-defaults)
     (require 'nano-session)
     (require 'nano-modeline)
     (require 'nano-help)
