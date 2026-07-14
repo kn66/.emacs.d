@@ -165,16 +165,14 @@ It has been built into Emacs since Emacs 29.
             ))
 #+end_src
 
-** [[https://github.com/kn66/folio-theme.el][folio-theme]]
-
-Load the custom ~folio~ theme to provide the main color palette for the frame.
+** osmanthus
 
 #+begin_src emacs-lisp
-  (use-package folio-theme
-    :vc ( :url "https://github.com/kn66/folio-theme.el"
-          :rev :newest)
+  (use-package osmanthus-theme
+    ;; :load-path "~/.emacs.d/lisp/osmanthus-theme/"
+    :vc ( :url "https://github.com/kn66/osmanthus-theme")
     :config
-    (load-theme 'folio t))
+    (load-theme 'osmanthus t))
 #+end_src
 
 ** nano-emacs
