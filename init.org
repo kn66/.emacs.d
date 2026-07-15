@@ -1155,15 +1155,73 @@ GitHub Copilot is an AI-powered code completion and generation service.
 To use Copilot from Emacs, use the ~copilot.el~ package. The following is a basic configuration example.
 
 #+begin_src emacs-lisp :tangle no
+  (defun my/copilot-enable-in-file-text-buffer ()
+    "Enable Copilot only in text buffers that visit a file."
+    (when buffer-file-name
+      (copilot-mode 1)))
+
   (use-package copilot
     :vc ( :url "https://github.com/copilot-emacs/copilot.el"
           :rev :newest
           :branch "main")
     :bind ( :map copilot-completion-map
+            ("TAB" . nil)
             ("M-RET" . copilot-accept-completion))
     :hook ((prog-mode . copilot-mode)
-           (text-mode . copilot-mode)
+           (text-mode . my/copilot-enable-in-file-text-buffer)
            (conf-mode . copilot-mode)))
+
+  (defun my/org-capture-place-template-with-copilot (original &rest args)
+    "Suspend Copilot while Org inserts a capture template."
+    (let* ((target (org-capture-get :buffer))
+           (copilot-was-enabled
+            (and (buffer-live-p target)
+                 (with-current-buffer target
+                   (bound-and-true-p copilot-mode)))))
+      (org-capture-put :my/copilot-target target
+                       :my/copilot-was-enabled copilot-was-enabled)
+      (when copilot-was-enabled
+        (with-current-buffer target
+          (copilot-mode -1)))
+      (condition-case err
+          (prog1 (apply original args)
+            ;; Template insertion is complete here, so Copilot can safely
+            ;; track changes made while editing the capture entry.
+            (when copilot-was-enabled
+              (copilot-mode 1)))
+        ((error quit)
+         (when (and copilot-was-enabled
+                    (buffer-live-p target))
+           (with-current-buffer target
+             (copilot-mode 1)))
+         (signal (car err) (cdr err))))))
+
+  (defun my/org-capture-disable-copilot-before-finalize ()
+    "Disable Copilot before Org finalizes or aborts a capture."
+    (when (bound-and-true-p copilot-mode)
+      (copilot-mode -1)))
+
+  (defun my/org-capture-restore-copilot ()
+    "Restore Copilot in the capture target buffer."
+    (let ((target (org-capture-get :my/copilot-target))
+          (was-enabled (org-capture-get :my/copilot-was-enabled)))
+      (when (and was-enabled
+                 (buffer-live-p target))
+        (with-current-buffer target
+          (copilot-mode 1)))))
+
+  (with-eval-after-load 'org-capture
+    (unless (advice-member-p
+             #'my/org-capture-place-template-with-copilot
+             'org-capture-place-template)
+      (advice-add
+       'org-capture-place-template
+       :around
+       #'my/org-capture-place-template-with-copilot))
+    (add-hook 'org-capture-prepare-finalize-hook
+              #'my/org-capture-disable-copilot-before-finalize)
+    (add-hook 'org-capture-after-finalize-hook
+              #'my/org-capture-restore-copilot))
 #+end_src
 
 ** [[https://github.com/minad/consult][consult]] (Multi-purpose Search and Narrowing Commands)
