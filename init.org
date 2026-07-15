@@ -915,20 +915,25 @@ Pressing RET inserts a newline when no completion candidate is selected, and sel
 #+begin_src emacs-lisp
   (with-eval-after-load 'corfu
     (defvar corfu--index)
-    (defvar corfu-magic-insert-or-next-line
-      `(menu-item "" nil :filter ,(lambda (&optional _)
-                                    (when (>= corfu--index 0)
-                                      'corfu-insert)))
-      "If we made a selection during `corfu' completion, select it.")
-    (define-key corfu-map (kbd "RET") corfu-magic-insert-or-next-line)
 
-    (defvar corfu-magic-cancel-or-backspace
-      `(menu-item "" nil :filter ,(lambda (&optional _)
-                                    (when (>= corfu--index 0)
-                                      'corfu-reset)))
-      "If we made a selection during `corfu' completion, cancel it.")
-    (define-key corfu-map (kbd "DEL") corfu-magic-cancel-or-backspace)
-    (define-key corfu-map (kbd "<backspace>") corfu-magic-cancel-or-backspace))
+    (let ((insert-or-return
+           `(menu-item "" nil
+                       :filter
+                       ,(lambda (&optional _)
+                          (when (>= corfu--index 0)
+                            #'corfu-insert))))
+          (reset-or-backspace
+           `(menu-item "" nil
+                       :filter
+                       ,(lambda (&optional _)
+                          (when (>= corfu--index 0)
+                            #'corfu-reset)))))
+
+      (dolist (key '("RET" "<return>"))
+        (keymap-set corfu-map key insert-or-return))
+
+      (dolist (key '("DEL" "<backspace>"))
+        (keymap-set corfu-map key reset-or-backspace))))
 #+end_src
 
 ** flex-x
