@@ -219,8 +219,9 @@ defaults, session handling, splash screen, and a custom modeline.
            (concat "(" mode-name
                    (if branch
                        (concat ", " (propertize branch 'face 'italic)))
-                   ")")
-           (concat coding " " position))))))
+                   ") "
+                   coding)
+           position)))))
 #+end_src
 
 *** [[https://github.com/rougier/nano-vertico][nano-vertico]]
