@@ -980,7 +980,6 @@ Corfu handles in-buffer text completion, while Vertico handles minibuffer comple
              (count (max 1 (- height extra-lines))))
         ;; Keep both the user-visible default and this minibuffer's local
         ;; value in sync.  This also supports per-frame recalculation.
-        (setq-default vertico-count count)
         (setq-local vertico-count count)))
 
     (defun my/nano-vertico-resize-to-golden-height (&rest _)
