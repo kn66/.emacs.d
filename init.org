@@ -986,26 +986,10 @@ Corfu handles in-buffer text completion, while Vertico handles minibuffer comple
                       (selected-frame)))
              (height (round (* (frame-height frame)
                                my/vertico-golden-height-ratio)))
-             ;; Nano Vertico adds a header and decorative lines around the
-             ;; candidates.  Plain Vertico only adds the minibuffer prompt.
-             (extra-lines (if (bound-and-true-p nano-vertico-mode) 3 1))
-             (count (max 1 (- height extra-lines))))
-        ;; Keep both the user-visible default and this minibuffer's local
-        ;; value in sync.  This also supports per-frame recalculation.
+             ;; Vertico adds the minibuffer prompt above the candidates.
+             (count (max 1 (1- height))))
+        ;; Use a buffer-local value to support per-frame recalculation.
         (setq-local vertico-count count)))
-
-    (defun my/nano-vertico-resize-to-golden-height (&rest _)
-      "Keep the NANO Vertico window at the configured golden-ratio height."
-      ;; NANO Vertico bypasses `vertico--resize-window', so explicitly resize
-      ;; after rendering.  Two accounts for its three non-candidate lines,
-      ;; since `vertico--resize-window' itself adds one prompt line.
-      (vertico--resize-window (+ vertico-count 2)))
-
-    (with-eval-after-load 'nano-vertico
-      (unless (advice-member-p #'my/nano-vertico-resize-to-golden-height
-                               'nano-vertico-display-candidates)
-        (advice-add #'nano-vertico-display-candidates :after
-                    #'my/nano-vertico-resize-to-golden-height)))
 
     (setopt vertico-resize nil)
     (vertico-mode))
