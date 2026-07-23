@@ -224,22 +224,28 @@ defaults, session handling, splash screen, and a custom modeline.
            position)))))
 #+end_src
 
-*** [[https://github.com/rougier/nano-vertico][nano-vertico]]
+*** Vertico Appearance
 
-Apply the NANO visual style to Vertico, including custom selection markers and
-completion line symbols.
+Add a compact selection gutter through Vertico's generic candidate formatter.
+Flat and grid layouts retain their standard formatting.
 
 #+begin_src emacs-lisp
-  (use-package nano-vertico
-    :vc ( :url "https://github.com/rougier/nano-vertico"
-          :rev :newest)
-    :after vertico
-    :config
-    (setopt nano-vertico-symbols '((pill-left  . "")
-                                   (pill-right . "")
-                                   (selection  . ">")
-                                   (line       . ?╴)))
-    (nano-vertico-mode))
+  (with-eval-after-load 'vertico
+    (cl-defmethod vertico--format-candidate :around
+      (candidate prefix suffix index start)
+      "Add a compact selection gutter to vertical candidates."
+      (let ((formatted
+             (cl-call-next-method candidate prefix suffix index start)))
+        (if (or (bound-and-true-p vertico-flat-mode)
+                (bound-and-true-p vertico-grid-mode))
+            formatted
+          (let ((selected (= index vertico--index)))
+            (concat
+             (propertize (if selected "▎ " "  ")
+                         'face (if selected
+                                   '(font-lock-keyword-face vertico-current)
+                                 'default))
+             formatted))))))
 #+end_src
 
 *** [[https://protesilaos.com/emacs/fontaine][fontaine]]
