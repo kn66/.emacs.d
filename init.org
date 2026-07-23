@@ -165,14 +165,20 @@ It has been built into Emacs since Emacs 29.
             ))
 #+end_src
 
-** osmanthus
+** solarized-theme
 
 #+begin_src emacs-lisp
-  (use-package osmanthus-theme
-    ;; :load-path "~/.emacs.d/lisp/osmanthus-theme/"
-    :vc ( :url "https://github.com/kn66/osmanthus-theme")
+  (use-package modus-solarized
+    ;; :load-path "~/.emacs.d/lisp/modus-solarized/"
+    :vc ( :url "https://github.com/kn66/modus-solarized"
+          :rev :newest)
+    :custom
+    (modus-solarized-color-remaps
+     '((green . yellow)
+       (cyan . yellow)))
     :config
-    (load-theme 'osmanthus t))
+    (load-theme 'modus-solarized-light t)
+    (modus-solarized-refresh))
 #+end_src
 
 ** nano-emacs
