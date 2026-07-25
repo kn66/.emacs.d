@@ -303,7 +303,7 @@ layout more comfortable.
                :tab-width nil
                :right-divider-width nil
                :scroll-bar-width nil
-               :fringe-width 1))
+               :fringe-width nil))
     (spacious-padding-mode))
 #+end_src
 
