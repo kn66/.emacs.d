@@ -851,8 +851,7 @@ It makes it easy to add and manage completion sources, which are functions that 
     :hook (((prog-mode
              text-mode
              conf-mode
-             eglot-managed-mode
-             lsp-completion-mode) . my/cape-setup-capfs))
+             eglot-managed-mode) . my/cape-setup-capfs))
     :config
     (require 'cl-lib)
     (autoload 'cape-keyword "cape-keyword" nil t)
