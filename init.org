@@ -94,9 +94,6 @@ Add the MELPA repository and configure package sources and priorities.
   (setopt package-install-upgrade-built-in t ; Also upgrade built-in packages.
           package-native-compile t)          ; Native-compile packages at install time.
 
-  (unless package--initialized
-    (package-initialize t))
-
   (unless (version< emacs-version "31.0")
     ;; Emacs 31 introduces built-in update review support.
     (setopt package-review-policy t))
