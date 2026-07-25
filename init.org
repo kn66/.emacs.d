@@ -1635,11 +1635,7 @@ The latest grammar bundle version can be checked on [[https://github.com/emacs-t
     :init
     ;; Specify a working version if a version mismatch occurs on Emacs 30.
     (when (version< emacs-version "31")
-      (setopt treesit-langs-bundle-version "0.12.300"))
-
-    :config
-    ;; Automatically apply basic settings for using Tree-sitter in each major mode.
-    (treesit-langs-major-mode-setup))
+      (setopt treesit-langs-bundle-version "0.12.300")))
 #+end_src
 
 *** [[https://github.com/renzmann/treesit-auto][treesit-auto]]
@@ -1859,14 +1855,6 @@ This package shows Nerd Font icons in Corfu completion popups by adding the
 This section configures Emacs's built-in LSP client, ~eglot~, and helper packages around it.
 It covers language server installation, shared configuration, and snippet integration.
 
-*** eglot
-
-#+begin_src emacs-lisp
-  (use-package eglot
-    :ensure nil
-    :defer t)
-#+end_src
-
 *** [[https://github.com/kn66/eglot-multi-preset][eglot-multi-preset]]
 
 This package smoothly configures eglot with [[https://github.com/joaotavora/rassumfrassum][rass (rassumfrassum)]] and [[https://github.com/thefrontside/lspx][lspx]].
@@ -1992,12 +1980,6 @@ This is a custom package that displays a cat in the center of the screen when a 
 
 #+begin_src emacs-lisp
   (use-package relint :defer t)
-#+end_src
-
-*** elsa
-
-#+begin_src emacs-lisp
-  (use-package elsa :defer t)
 #+end_src
 
 *** cognitive-complexity
