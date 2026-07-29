@@ -279,6 +279,32 @@ I created a custom package to solve that problem.
     (global-auto-revert-mode))
 #+end_src
 
+*** Restore Previous Window Configurations
+
+Keep a history of window configurations.
+Use ~C-c <left>~ and ~C-c <right>~ to move backward and forward through the history.
+
+#+begin_src emacs-lisp
+  (use-package winner
+    :ensure nil
+    :init
+    (winner-mode 1))
+#+end_src
+
+*** Improve Dired Navigation
+
+When two Dired windows are visible, use the other window as the default target for copy and rename operations.
+Refresh Dired buffers when their directory contents change, and avoid accumulating unnecessary Dired buffers.
+
+#+begin_src emacs-lisp
+  (use-package dired
+    :ensure nil
+    :defer t
+    :init
+    (setopt dired-dwim-target t
+            dired-kill-when-opening-new-dired-buffer t))
+#+end_src
+
 *** Move by camelCase Components
 
 Recognize compound words such as ~camelCase~ and ~snake_case~ as separate subwords.
