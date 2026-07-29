@@ -175,12 +175,22 @@ Allow minibuffer prompts that ask for ~yes~ or ~no~ to be answered with ~y~ or ~
   (setopt use-short-answers t)
 #+end_src
 
-*** Do Not Create Lock or Backup Files
+*** Keep Versioned Backups and Create Lock Files
+
+Store backup files in a dedicated directory instead of next to the original files.
+Keep several generations so earlier contents can be recovered after accidental edits.
+Lock files warn when the same file is being edited by another Emacs process.
 
 #+begin_src emacs-lisp
-  (setopt make-backup-files nil
-          backup-inhibited nil
-          create-lockfiles nil)
+  (let ((backup-dir (locate-user-emacs-file "backups/")))
+    (make-directory backup-dir t)
+    (setopt make-backup-files t
+            backup-directory-alist `(("." . ,backup-dir))
+            version-control t
+            kept-new-versions 10
+            kept-old-versions 2
+            delete-old-versions t
+            create-lockfiles t))
 #+end_src
 
 *** Disable the Beep
