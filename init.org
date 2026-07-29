@@ -271,7 +271,10 @@ I created a custom package to solve that problem.
 
 #+begin_src emacs-lisp
   (use-package autorevert
+    :ensure nil
     :defer 2
+    :init
+    (setopt global-auto-revert-non-file-buffers t)
     :config
     (global-auto-revert-mode))
 #+end_src
