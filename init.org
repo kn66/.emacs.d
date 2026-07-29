@@ -674,9 +674,7 @@ Settings for built-in Emacs features that make Corfu more comfortable to use.
   (use-package emacs
     :ensure nil
     :init
-    (setopt tab-always-indent 'complete
-            text-mode-ispell-word-completion nil
-            read-extended-command-predicate #'command-completion-default-include-p))
+    (setopt tab-always-indent 'complete))
 #+end_src
 
 *** [[https://github.com/minad/cape][cape]] (Completion At Point Extensions)
