@@ -111,8 +111,9 @@ It automatically commits state changes during install, delete, and upgrade opera
     :vc ( :url "https://github.com/kn66/package-git.el"
           :rev :newest)
     ;; :load-path "~/.emacs.d/lisp/package-git.el/"
-    :after package
-    :defer 5
+    ;; Package operations performed by later use-package declarations must
+    ;; already be tracked.
+    :demand t
     :config
     (package-git-enable))
 #+end_src
