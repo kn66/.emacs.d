@@ -249,6 +249,9 @@ Save minibuffer input history, search and replace history, and similar data acro
   (use-package savehist
     :ensure nil
     :defer 1
+    :init
+    (setopt history-delete-duplicates t
+            kill-do-not-save-duplicates t)
     :config
     (savehist-mode))
 #+end_src
