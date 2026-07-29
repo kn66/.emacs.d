@@ -143,11 +143,11 @@ Emacs 31 includes this as a standard feature.
     :if (version< emacs-version "31")
     :vc ( :url "https://github.com/kn66/package-upgrade-guard.el.git" :rev :newest)
     ;; :load-path "~/.emacs.d/lisp/package-upgrade-guard.el/"
-    :after package
-    :defer 5
+    ;; Protect package operations from the beginning of initialization.
+    :demand t
     :config
     (setopt package-upgrade-guard-diff-mode 'security)
-    (package-upgrade-guard-mode))
+    (package-upgrade-guard-mode 1))
 #+end_src
 
 *** use-package
