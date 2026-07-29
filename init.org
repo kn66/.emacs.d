@@ -305,19 +305,6 @@ I switched to adjusting ~gc-cons-percentage~ as recommended in the [[https://ema
           gc-cons-threshold (* 128 1024 1024))
 #+end_src
 
-*** Reduce Animation and Visual Effect Overhead
-
-Disable small recurring visual effects and prefer settings that reduce redisplay work.
-
-#+begin_src emacs-lisp
-  (blink-cursor-mode -1)
-
-  (setopt fast-but-imprecise-scrolling t
-          frame-inhibit-implied-resize t
-          inhibit-compacting-font-caches t
-          redisplay-skip-fontification-on-input t)
-#+end_src
-
 *** Optimize Files with Long Lines
 
 Improve performance when opening files that contain very long lines.
