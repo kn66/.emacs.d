@@ -835,32 +835,6 @@ Here, the configuration example uses Gemini models through GitHub Copilot creden
     (require 'gptel-integrations))
 #+end_src
 
-**** [[https://github.com/lakkiy/gptel-commit][gptel-commit]]
-
-~gptel-commit~ is a package that helps generate Git commit messages automatically.
-
-#+begin_src emacs-lisp :tangle no
-  (use-package gptel-commit
-    :ensure t
-    :after (gptel magit)
-    :custom
-    (gptel-commit-stream t)
-    :config
-    (with-eval-after-load 'magit
-      (define-key git-commit-mode-map (kbd "C-c g") #'gptel-commit)
-      (define-key git-commit-mode-map (kbd "C-c G") #'gptel-commit-rationale))
-
-    (advice-add 'gptel-commit :around
-                (lambda (orig-fun &rest args)
-                  (let ((gptel-model "gpt-4.1"))
-                    (apply orig-fun args))))
-
-    (advice-add 'gptel-commit-rationale :around
-                (lambda (orig-fun &rest args)
-                  (let ((gptel-model "gpt-4.1"))
-                    (apply orig-fun args)))))
-#+end_src
-
 *** [[https://github.com/copilot-emacs/copilot.el][copilot.el]]
 
 GitHub Copilot is an AI-powered code completion and generation service.
