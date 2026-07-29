@@ -928,6 +928,7 @@ and provides advanced search and narrowing features in cooperation with completi
            ("M-y" . consult-yank-pop)                ;; orig. yank-pop
            ;; M-g bindings in `goto-map'
            ("M-g e" . consult-compile-error)
+           ("M-g r" . consult-grep-match)
            ("M-g f" . consult-flymake)               ;; Alternative: consult-flycheck
            ("M-g g" . consult-goto-line)             ;; orig. goto-line
            ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
@@ -937,7 +938,7 @@ and provides advanced search and narrowing features in cooperation with completi
            ("M-g i" . consult-imenu)
            ("M-g I" . consult-imenu-multi)
            ;; M-s bindings in `search-map'
-           ("M-s d" . consult-fd)
+           ("M-s d" . consult-find)                  ;; Alternative: consult-fd
            ("M-s c" . consult-locate)
            ("M-s g" . consult-grep)
            ("M-s G" . consult-git-grep)
@@ -966,11 +967,11 @@ and provides advanced search and narrowing features in cooperation with completi
     ;; register formatting, adds thin separator lines, register sorting and hides
     ;; the window mode line.
     (advice-add #'register-preview :override #'consult-register-window)
-    (setopt register-preview-delay 0.5)
+    (setq register-preview-delay 0.5)
 
     ;; Use Consult to select xref locations with preview
-    (setopt xref-show-xrefs-function #'consult-xref
-            xref-show-definitions-function #'consult-xref)
+    (setq xref-show-xrefs-function #'consult-xref
+          xref-show-definitions-function #'consult-xref)
 
     ;; Configure other variables and modes in the :config section,
     ;; after lazily loading the package.
@@ -978,9 +979,9 @@ and provides advanced search and narrowing features in cooperation with completi
 
     ;; Optionally configure preview. The default value
     ;; is 'any, such that any key triggers the preview.
-    ;; (setopt consult-preview-key 'any)
-    ;; (setopt consult-preview-key "M-.")
-    ;; (setopt consult-preview-key '("S-<down>" "S-<up>"))
+    ;; (setq consult-preview-key 'any)
+    ;; (setq consult-preview-key "M-.")
+    ;; (setq consult-preview-key '("S-<down>" "S-<up>"))
     ;; For some commands and buffer sources it is useful to configure the
     ;; :preview-key on a per-command basis using the `consult-customize' macro.
     (consult-customize
@@ -994,7 +995,7 @@ and provides advanced search and narrowing features in cooperation with completi
 
     ;; Optionally configure the narrowing key.
     ;; Both < and C-+ work reasonably well.
-    (setopt consult-narrow-key "<") ;; "C-+"
+    (setq consult-narrow-key "<") ;; "C-+"
 
     ;; Optionally make narrowing help available in the minibuffer.
     ;; You may want to use `embark-prefix-help-command' or which-key instead.
@@ -1109,7 +1110,7 @@ against completion candidates from Vertico or Consult and various targets in buf
     :init
 
     ;; Optionally replace the key help with a completing-read interface
-    (setopt prefix-help-command #'embark-prefix-help-command)
+    (setq prefix-help-command #'embark-prefix-help-command)
 
     ;; Show the Embark target at point via Eldoc. You may adjust the
     ;; Eldoc strategy, if you want to see the documentation from
@@ -1117,12 +1118,12 @@ against completion candidates from Vertico or Consult and various targets in buf
     ;; jarring since the message shown in the minibuffer can be more
     ;; than one line, causing the modeline to move up and down:
 
-    (add-hook 'eldoc-documentation-functions #'embark-eldoc-first-target)
-    (setopt eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
+    ;; (add-hook 'eldoc-documentation-functions #'embark-eldoc-first-target)
+    ;; (setq eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
 
     ;; Add Embark to the mouse context menu. Also enable `context-menu-mode'.
-    (context-menu-mode 1)
-    (add-hook 'context-menu-functions #'embark-context-menu 100)
+    ;; (context-menu-mode 1)
+    ;; (add-hook 'context-menu-functions #'embark-context-menu 100)
 
     :config
 
@@ -1139,9 +1140,7 @@ Integrates Embark and Consult so Embark actions can be run from Consult search r
 For example, actions such as closing or killing a buffer selected with ~consult-buffer~ can be run through Embark.
 
 #+begin_src emacs-lisp
-  (use-package embark-consult
-    :after (embark consult)
-    :hook (embark-collect-mode . consult-preview-at-point-mode))
+  (use-package embark-consult)
 #+end_src
 
 ** [[https://github.com/minad/tempel][tempel]] (Lightweight Snippet Engine)
