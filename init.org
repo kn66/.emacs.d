@@ -497,18 +497,25 @@ Enable the fill column indicator to show that position visually.
     :hook (message-mode . display-fill-column-indicator-mode))
 #+end_src
 
-*** ediff
-
-~ediff~ is Emacs's built-in diff tool for files and buffers.
-It visually displays differences between two files or buffers and supports merge operations.
-Here, it is configured to split windows vertically during diff comparisons.
+*** fido-vertical
 
 #+begin_src emacs-lisp
-  (use-package ediff
+  (use-package icomplete
     :ensure nil
-    :defer t
+    :bind ( :map icomplete-minibuffer-map
+            ("<backspace>" . icomplete-fido-backward-updir)
+            ("C-." . nil)
+            ("C-," . nil))
+    :init
+    (fido-vertical-mode))
+#+end_src
+
+** Theme
+
+#+begin_src emacs-lisp
+  (use-package commentary-theme
     :config
-    (setopt ediff-split-window-function 'split-window-horizontally))
+    (load-theme 'commentary t))
 #+end_src
 
 ** org
@@ -795,6 +802,9 @@ Pressing RET inserts a newline when no completion candidate is selected, and sel
     :vc ( :url "https://github.com/kn66/flex-x"
           :rev :newest)
     :config
+    (add-hook 'icomplete-minibuffer-setup-hook
+              (lambda () (setq-local completion-styles '(flex-x basic))))
+
     (setopt completion-styles '(flex-x basic))
 
     (with-eval-after-load 'migemo
@@ -802,139 +812,6 @@ Pressing RET inserts a newline when no completion candidate is selected, and sel
 
     (with-eval-after-load 'gnus
       (setopt gnus-completion-styles '(flex-x basic))))
-#+end_src
-
-** [[https://github.com/minad/vertico][vertico]]
-
-This package enhances the minibuffer completion UI.
-It displays candidates in a vertical list for minibuffer operations such as ~M-x~ and file search.
-Corfu handles in-buffer text completion, while Vertico handles minibuffer completion.
-
-#+begin_src emacs-lisp
-  (use-package vertico
-    :hook (minibuffer-setup . my/vertico-set-golden-height)
-    :init
-    (defconst my/vertico-golden-height-ratio
-      (/ 1.0 (expt (/ (+ 1.0 (sqrt 5.0)) 2.0) 2))
-      "Ratio of the frame height occupied by Vertico.")
-
-    (defun my/vertico-set-golden-height ()
-      "Set Vertico height to the smaller part of the golden ratio."
-      (let* ((source-window (minibuffer-selected-window))
-             (frame (if (window-live-p source-window)
-                        (window-frame source-window)
-                      (selected-frame)))
-             (height (round (* (frame-height frame)
-                               my/vertico-golden-height-ratio)))
-             ;; Vertico adds the minibuffer prompt above the candidates.
-             (count (max 1 (1- height))))
-        ;; Use a buffer-local value to support per-frame recalculation.
-        (setq-local vertico-count count)))
-
-    (setopt vertico-resize nil)
-    (vertico-mode))
-#+end_src
-
-*** Built-in Emacs Settings for Vertico
-
-Adjust basic minibuffer behavior so Vertico and the standard completion features work well together.
-Recursive minibuffers, case-insensitive completion, and related settings are configured here.
-
-#+begin_src emacs-lisp
-  (use-package emacs
-    :ensure nil
-    :init
-    (setopt enable-recursive-minibuffers t
-            read-extended-command-predicate #'command-completion-default-include-p
-            minibuffer-prompt-properties '(read-only t cursor-intangible t face minibuffer-prompt)
-            ;; Ignore case.
-            read-file-name-completion-ignore-case t
-            read-buffer-completion-ignore-case t
-            completion-ignore-case t)
-
-    (context-menu-mode))
-#+end_src
-
-*** Completing-read-multiple
-
-Helper settings that make the ~completing-read-multiple~ prompt clearer when selecting multiple candidates.
-They make it easier to see in the minibuffer which separator is used for multiple selections.
-
-#+begin_src emacs-lisp
-  ;; Prompt indicator for `completing-read-multiple'.
-  (when (< emacs-major-version 31)
-    (advice-add #'completing-read-multiple :filter-args
-                (lambda (args)
-                  (cons (format "[CRM%s] %s"
-                                (string-replace "[ \t]*" "" crm-separator)
-                                (car args))
-                        (cdr args)))))
-#+end_src
-
-*** vertico-repeat
-
-This Vertico extension makes it possible to invoke the previously executed minibuffer command again.
-
-#+begin_src emacs-lisp
-  (use-package vertico-repeat
-    :ensure nil
-    :after vertico
-    :bind ("M-R" . vertico-repeat)
-    :hook (minibuffer-setup . vertico-repeat-save))
-#+end_src
-
-*** vertico-directory
-
-This Vertico extension enhances directory completion.
-
-#+begin_src emacs-lisp
-  (use-package vertico-directory
-    :ensure nil
-    :after vertico
-    :bind ( :map vertico-directory-map
-            ("C-h" . vertico-directory-up)
-            :map vertico-map
-            ("RET" . vertico-directory-enter)
-            ("DEL" . vertico-directory-delete-char)
-            ("M-DEL" . vertico-directory-delete-word))
-    :hook (rfn-eshadow-update-overlay . vertico-directory-tidy))
-#+end_src
-
-*** vertico-multiform
-
-This Vertico extension customizes the completion UI display format by category.
-
-#+begin_src emacs-lisp
-  (use-package vertico-multiform
-    :ensure nil
-    :after vertico
-    :config
-    (setopt vertico-multiform-categories
-            '((file (:keymap . vertico-directory-map))))
-    (vertico-multiform-mode))
-#+end_src
-
-*** vertico-mouse
-
-This Vertico extension enables selecting and scrolling completion candidates with the mouse.
-
-#+begin_src emacs-lisp
-  (use-package vertico-mouse
-    :ensure nil
-    :after vertico
-    :config
-    (vertico-mouse-mode))
-#+end_src
-
-*** [[https://github.com/kn66/vertico-carousel][vertico-carousel]]
-
-#+begin_src emacs-lisp
-  (use-package vertico-carousel
-    :vc ( :url "https://github.com/kn66/vertico-carousel"
-          :rev :newest)
-    ;; :load-path "~/.emacs.d/lisp/vertico-carousel/"
-    :config
-    (vertico-carousel-mode))
 #+end_src
 
 ** AI (Artificial Intelligence)
