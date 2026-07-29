@@ -1475,17 +1475,6 @@ This package jumps quickly to words and symbols away from point.
     :bind ("C-:" . avy-goto-char))
 #+end_src
 
-** [[https://github.com/jscheid/dtrt-indent][dtrt-indent]]
-
-This package detects and configures indentation automatically.
-
-#+begin_src emacs-lisp
-  (use-package dtrt-indent
-    :defer 2
-    :config
-    (dtrt-indent-global-mode))
-#+end_src
-
 ** [[https://github.com/Malabarba/aggressive-indent-mode][aggressive-indent-mode]]
 
 This package automatically adjusts code indentation in real time.
@@ -1503,47 +1492,6 @@ This package automatically adjusts code indentation in real time.
           :rev :newest)
     ;; :load-path "~/.emacs.d/lisp/dired-clipboard.el/"
     :hook (dired-mode . dired-clipboard-mode))
-#+end_src
-
-** [[https://github.com/rainstormstudio/nerd-icons.el][nerd-icons]]
-
-This package provides Nerd Font icons for Emacs UI integrations. It is the base
-icon set used by the companion packages in this section.
-
-#+begin_src emacs-lisp
-  (use-package nerd-icons)
-#+end_src
-
-*** [[https://github.com/rainstormstudio/nerd-icons-completion][nerd-icons-completion]]
-
-This package adds Nerd Font icons to completion candidates, making buffers,
-files, and symbols easier to distinguish at a glance.
-
-#+begin_src emacs-lisp
-  (use-package nerd-icons-completion
-    :hook (after-init . nerd-icons-completion-mode))
-#+end_src
-
-*** [[https://github.com/rainstormstudio/nerd-icons-dired][nerd-icons-dired]]
-
-This package displays Nerd Font icons next to files and directories in Dired
-buffers.
-
-#+begin_src emacs-lisp
-  (use-package nerd-icons-dired
-    :hook (dired-mode . nerd-icons-dired-mode))
-#+end_src
-
-*** [[https://github.com/LuigiPiucco/nerd-icons-corfu][nerd-icons-corfu]]
-
-This package shows Nerd Font icons in Corfu completion popups by adding the
-~nerd-icons~ formatter to Corfu's margin formatters.
-
-#+begin_src emacs-lisp
-  (use-package nerd-icons-corfu
-    :after corfu nerd-icons
-    :config
-    (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))
 #+end_src
 
 ** eglot
@@ -1608,9 +1556,6 @@ The scale is set to 2x for high-resolution diagram generation.
     :defer t
     :config
     (setopt mermaid-flags "--scale 2"))
-
-  (use-package mermaid-ts-mode
-    :defer t)
 #+end_src
 
 *** web (Web Development)
