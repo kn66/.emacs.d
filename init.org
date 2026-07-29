@@ -569,6 +569,20 @@ Enable the fill column indicator to show that position visually.
     :hook (message-mode . display-fill-column-indicator-mode))
 #+end_src
 
+*** Support Nested Minibuffers
+
+Allow commands that use the minibuffer to be invoked while another minibuffer is active.
+Display the nesting depth in the minibuffer prompt to make nested sessions apparent.
+
+#+begin_src emacs-lisp
+  (setopt enable-recursive-minibuffers t)
+
+  (use-package mb-depth
+    :ensure nil
+    :init
+    (minibuffer-depth-indicate-mode 1))
+#+end_src
+
 *** fido-vertical
 
 #+begin_src emacs-lisp
