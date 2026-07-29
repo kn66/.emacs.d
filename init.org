@@ -127,10 +127,10 @@ Implements retry handling when network errors occur during package installation.
     :vc ( :url "https://github.com/kn66/package-retry.el.git"
           :rev :newest)
     ;; :load-path "~/.emacs.d/lisp/package-retry.el/"
-    :after package
-    :defer 5
+    ;; Enable retries before later declarations can install dependencies.
+    :demand t
     :config
-    (package-retry-mode))
+    (package-retry-mode 1))
 #+end_src
 
 *** [[https://github.com/kn66/package-upgrade-guard.el][package-upgrade-guard]]
