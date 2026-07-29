@@ -325,6 +325,49 @@ When deleting files from Emacs, move them to the system trash instead of deletin
   (setopt delete-by-moving-to-trash t)
 #+end_src
 
+*** Require a Final Newline
+
+Ensure that text files end with a newline when they are saved.
+
+#+begin_src emacs-lisp
+  (setopt require-final-newline t)
+#+end_src
+
+*** Enable Precise Pixel Scrolling
+
+Scroll smoothly according to mouse-wheel and touchpad input.
+The mode is harmless in terminal frames and remains available to graphical frames created by ~emacsclient~.
+
+#+begin_src emacs-lisp
+  (use-package pixel-scroll
+    :ensure nil
+    :init
+    (pixel-scroll-precision-mode 1))
+#+end_src
+
+*** Make URLs and Email Addresses Clickable
+
+Recognize URLs and email addresses in suitable text and programming buffers.
+
+#+begin_src emacs-lisp
+  (use-package goto-addr
+    :ensure nil
+    :init
+    (global-goto-address-mode 1))
+#+end_src
+
+*** Enable Context Menus
+
+Enable the built-in context menu used by mouse and touch input.
+This also activates context-menu entries registered by packages such as Denote.
+
+#+begin_src emacs-lisp
+  (use-package mouse
+    :ensure nil
+    :init
+    (context-menu-mode 1))
+#+end_src
+
 *** Do Not Display native-comp Warnings
 
 Suppress asynchronous warning and error messages from native compilation.
