@@ -304,8 +304,7 @@ Refresh Dired buffers when their directory contents change, and avoid accumulati
     :ensure nil
     :defer t
     :init
-    (setopt dired-dwim-target t
-            dired-kill-when-opening-new-dired-buffer t))
+    (setopt dired-dwim-target t))
 #+end_src
 
 *** Move by camelCase Components
