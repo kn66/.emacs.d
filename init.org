@@ -212,7 +212,7 @@ This makes it possible to open files quickly in the existing Emacs process.
     :defer 1
     :config
     (unless (server-running-p)
-      (server-start)))
+      (server-mode)))
 #+end_src
 
 *** Save the Last Cursor Position
