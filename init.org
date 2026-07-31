@@ -626,7 +626,9 @@ Here, the target directory is set to ~/org/~.
     :defer t
     :ensure nil
     :config
-    (setopt org-agenda-files '("~/org/"))
+    (setopt org-agenda-files '("~/org/")
+            org-agenda-span 14
+            org-agenda-start-day "0d")
     (add-to-list 'org-agenda-custom-commands '("D" "Old done tasks" tags "TODO=\"DONE\"+CLOSED<=\"<-7d>\"")))
 #+end_src
 
