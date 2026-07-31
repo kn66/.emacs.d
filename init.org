@@ -880,6 +880,23 @@ Pressing RET inserts a newline when no completion candidate is selected, and sel
         (keymap-set corfu-map key reset-or-backspace))))
 #+end_src
 
+*** [[https://github.com/minad/corfu/wiki#combined-sorting][Combined sorting]]
+
+#+begin_src emacs-lisp
+  (defun my-corfu-combined-sort (candidates)
+    "Sort CANDIDATES using both display-sort-function and corfu-sort-function."
+    (let ((candidates
+           (let ((display-sort-func (corfu--metadata-get 'display-sort-function)))
+             (if display-sort-func
+                 (funcall display-sort-func candidates)
+               candidates))))
+      (if corfu-sort-function
+          (funcall corfu-sort-function candidates)
+        candidates)))
+
+  (setq corfu-sort-override-function #'my-corfu-combined-sort)
+#+end_src
+
 ** flex-x
 
 #+begin_src emacs-lisp
