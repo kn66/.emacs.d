@@ -590,7 +590,9 @@ Display the nesting depth in the minibuffer prompt to make nested sessions appar
     :bind ( :map icomplete-minibuffer-map
             ("<backspace>" . icomplete-fido-backward-updir)
             ("C-." . nil)
-            ("C-," . nil))
+            ("C-," . nil)
+            :map icomplete-fido-mode-map
+            ("SPC" . self-insert-command))
     :init
     (fido-vertical-mode))
 #+end_src
