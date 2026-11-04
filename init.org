@@ -1,1063 +1,843 @@
-#+TITLE: Emacs Configuration File
-#+AUTHOR: kn66
-#+LANGUAGE: en
-#+OPTIONS: toc:2 num:nil
-#+PROPERTY: header-args:emacs-lisp :tangle init.el
+#+title: Emacs 設定
+#+language: ja
+#+startup: overview
+#+property: header-args:emacs-lisp :tangle init.el :comments no :results silent
 
-* Introduction
+* このファイルの使い方
 
-This file describes my Emacs configuration in literate programming format.
-Emacs Lisp source blocks are tangled to ~init.el~.
+このファイルを Emacs 設定の編集元とします。各節の説明に続く Emacs Lisp を
+上から順に =init.el= へ書き出します。設定は機能ごとの =use-package= 宣言にまとめています。
+Emacs 30.2 と Emacs 31 の組み込み機能を中心に、補完・検索・テンプレート・
+編集履歴・Git 操作を外部パッケージで拡張しています。
+同じ設定を両環境で使い、バージョン差がある箇所は自動で切り替えます。
 
-** Features
+設定を変更したら、このファイルで =C-c C-v t= （=org-babel-tangle=）を実行し、
+生成された =init.el= を次回の Emacs 起動時に読み込ませてください。
+起動時の Org 読み込みや自動生成は行いません。
+=init.el= を直接編集すると、次回の生成時にその変更が上書きされます。
+=M-x customize= などによる保存値は =custom.el= に分離し、起動時に読み込みます。
+このファイルにはマシン固有の値も含まれるため Git の管理対象外にします。
 
-- *Modern package management*: Uses ~use-package~ and ~package.el~
-- *Fast completion UI*: Combines Corfu, Vertico, Consult, and Embark
-- *Tree-sitter support*: Accurate syntax highlighting and code analysis
-- *LSP support*: Multi-language support through ~eglot~
-- *Multi-OS support*: Supports Windows and Linux (macOS is untested)
+コマンドラインから生成する場合は、Emacs 設定ディレクトリで次を実行します。
+このシェルブロックは =init.el= への書き出し対象外です。
 
-** Usage
-
-1. Place this file at ~~/.emacs.d/init.org~.
-2. Open it and run ~M-x org-babel-tangle~ to generate ~init.el~.
-3. The generated ~init.el~ will be loaded from the next startup.
-
-** Required External Tools
-
-- ~cmigemo~: Romaji-based Japanese search (optional)
-- ~ripgrep~: Fast file search (recommended)
-- ~fd~: Fast file search (recommended)
-- Language parsers for Tree-sitter
-
-* init.el
-
-** header
-
-#+begin_src emacs-lisp
-  ;;; package --- Initialization file -*- lexical-binding: t; coding: utf-8; -*-
-  ;;; Commentary:
-  ;;; Configure Emacs globally and manage packages.
-  ;;; Code:
+#+begin_src sh :tangle no
+  emacs -Q --batch --eval "(require 'org)" --eval '(org-babel-tangle-file "init.org")'
 #+end_src
 
-** OS Detection Constants
+* use-package の準備
 
-Define constants for detecting the operating system.
-These constants make it possible to branch OS-specific settings.
-
-#+begin_src emacs-lisp
-  (defconst IS-MAC (eq system-type 'darwin))
-  (defconst IS-LINUX (memq system-type '(gnu gnu/linux gnu/kfreebsd berkeley-unix)))
-  (defconst IS-WINDOWS (memq system-type '(cygwin windows-nt ms-dos)))
-#+end_src
-
-** Character Encoding
-
-Character encoding settings for Windows environments.
-The ~default-process-coding-system~ setting is especially important when working with external processes.
-This is based on discussions in the Windows channel of the Slack emacs-jp community.
-
-#+begin_src emacs-lisp
-  (when IS-WINDOWS
-    (set-language-environment "UTF-8")
-    (setopt file-name-coding-system 'cp932)
-    (setopt default-process-coding-system '(utf-8-dos . japanese-cp932-dos))
-    (modify-coding-system-alist 'process "pandoc" '(utf-8 . utf-8)))
-#+end_src
-
-** package.el
-
-Settings for Emacs's package management system, ~package.el~.
-Add the MELPA repository and configure package sources and priorities.
+Emacs 30.2 / 31 に同梱されている =use-package= を読み込みます。
+外部パッケージは原則として GNU ELPA・NonGNU ELPA・MELPA から取得します。
+Magit は NonGNU ELPA、Puni・Nucleo・Emacs 31.1 以上の =tempel-collection= は MELPA、
+それ以外は各宣言で GNU ELPA を指定します。
+アーカイブに未収録の =dired-clipboard= は公式リポジトリから取得します。
+=tempel-collection= は Emacs 31.1 以上では MELPA から導入します。
+それ以前の Emacs では例外として公式リポジトリから取得し、互換版に固定します。
+各宣言の =:ensure nil= は、通常のパッケージアーカイブからのインストールを行わない指定です。
+組み込み・ローカルのライブラリ、または =:vc= で導入するパッケージに使用します。
+=:custom= に変数、=:hook= にフック、=:bind= にキー割り当て、
+=:config= に読み込み後の処理をまとめます。
+=:preface= で他の設定が参照する変数を先に定義し、=:init= で保存先を作成します。
+=:defer t= の機能は必要になるまで読み込みを遅らせ、
+起動時に有効にするモードには =:demand t= を指定します。
 
 #+begin_src emacs-lisp
-  (require 'package)
-  ;; (add-to-list 'package-archives '("gnu-elpa-devel" . "https://elpa.gnu.org/devel/"))
-  ;; (add-to-list 'package-archives '("nongnu-devel" . "https://elpa.nongnu.org/nongnu-devel/") t)
-  (setopt package-archives
-          '(("melpa" . "https://melpa.org/packages/")
-            ("gnu" . "https://elpa.gnu.org/packages/")
-            ("nongnu" . "https://elpa.nongnu.org/nongnu/")))
+  ;;; init.el --- 個人用 Emacs 設定 -*- lexical-binding: t; -*-
+  ;; このファイルは init.org から生成します。設定の変更は init.org で行ってください。
 
-  ;; Specify installation priorities.
-  (setopt package-archive-priorities
-          '(("gnu" . 3)
-            ("nongnu" . 2)
-            ("melpa" . 1)))
-  ;; Use the following settings when using development versions.
-  ;; (setopt package-archive-priorities
-  ;;         '(("gnu-elpa-devel" . 3)
-  ;;           ("nongnu-devel" . 2)
-  ;;           ("melpa" . 1)))
-
-  (setopt package-install-upgrade-built-in t ; Also upgrade built-in packages.
-          package-native-compile t)          ; Native-compile packages at install time.
-
-  (unless (version< emacs-version "31.0")
-    ;; Emacs 31 introduces built-in update review support.
-    (setopt package-review-policy t))
+  (setq custom-file (locate-user-emacs-file "custom.el"))
 
   (require 'use-package)
-#+end_src
 
-*** [[https://github.com/kn66/package-git.el][package-git]]
-
-This is a custom package that creates and automatically manages a repository for tarball packages in the elpa directory.
-It automatically commits state changes during install, delete, and upgrade operations so they can be version-controlled.
-
-#+begin_src emacs-lisp
-  (use-package package-git
-    :vc ( :url "https://github.com/kn66/package-git.el"
-          :rev :newest)
-    ;; :load-path "~/.emacs.d/lisp/package-git.el/"
-    ;; Package operations performed by later use-package declarations must
-    ;; already be tracked.
+  (use-package package
+    :ensure nil
     :demand t
     :config
-    (package-git-enable))
+    (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t))
 #+end_src
 
-*** [[https://github.com/kn66/package-retry.el][package-retry]]
+* Emacs の基本設定
 
-Implements retry handling when network errors occur during package installation.
+特定のライブラリに属さない基本設定を =emacs= の宣言へまとめます。
+
+** 確認・検索・ミニバッファ・スクロール
+
+- =use-short-answers=: yes/no の確認に y/n で答えられるようにします。
+- =isearch-lazy-count=: インクリメンタル検索で現在位置と一致件数を表示します。
+- =enable-recursive-minibuffers=: ミニバッファの使用中にも、ミニバッファを使う別の操作を許可します。
+- =help-window-select=: 新しく開いたヘルプウィンドウを選択します。
+- =mouse-yank-at-point=: 中クリックの貼り付け先を、マウス位置ではなくカーソル位置にします。
+- =scroll-preserve-screen-position=: スクロール時にカーソルの画面内位置をできるだけ維持します。
+- =scroll-error-top-bottom=: スクロールでこれ以上移動できなくなる前に、バッファの先頭・末尾へ移動します。
+
+** 検索を続けながらスクロールする
+
+=isearch-allow-scroll= により、インクリメンタル検索を終了せずに
+=C-v= / =M-v= や =C-l= を使えます。検索を再開しやすいよう、一致箇所を表示範囲に保ちます。
+
+** クリップボードとキルリング
+
+=save-interprogram-paste-before-kill= で、Emacs のコピーや切り取りによって
+上書きされる前のクリップボード内容をキルリングへ保存します。
+=kill-do-not-save-duplicates= で、同じ内容をキルリングへ重複して保存することを抑えます。
+
+** 補完候補の詳細と診断の強調
+
+=completions-detailed= で補完候補に説明などの詳細を表示します。
+=next-error-message-highlight= で、エラー移動時に対応するコンパイル出力の診断を強調します。
+
+** M-x の候補をモードに合わせる
+
+=read-extended-command-predicate= に =command-completion-default-include-p= を指定し、
+他のモード専用と明示されたコマンドを =M-x= の候補から除外します。
+
+** キー割り当て一覧の折りたたみ
+
+=describe-bindings-outline= により、=C-h b= のキー割り当て一覧を
+見出しごとに折りたためるようにします。見出し上の =TAB= で表示を切り替えます。
+
+** 式の評価結果の表示量
+
+=M-:= などで表示する値について、=eval-expression-print-length= を50、
+=eval-expression-print-level= を10にします。
+長いリストや深い入れ子を確認しやすくしつつ、巨大な出力には上限を設けます。
+
+** TAB 補完と大文字・小文字の扱い
+
+- =tab-always-indent=: まず字下げし、字下げが済んでいれば =TAB= で補完します。
+- =completion-ignore-case=: 通常の補完で大文字と小文字を区別せず照合します。
+- =read-file-name-completion-ignore-case=: ファイル名の補完で大文字と小文字を区別せず照合します。
+- =read-buffer-completion-ignore-case=: バッファ名の補完で大文字と小文字を区別せず照合します。
+
+候補そのものの大文字・小文字は維持します。
+
+** 列番号とミニバッファの深さ
+
+=column-number-mode= で列番号を表示し、
+=minibuffer-depth-indicate-mode= でミニバッファが入れ子になったときの深さを表示します。
+
+** ファイル削除・改行・字下げ
+
+バックアップ設定から、=delete-by-moving-to-trash= と =require-final-newline= を取り入れます。
+ファイル削除時は利用できるシステムのゴミ箱へ移し、テキストの保存時は末尾に改行を補います。
+リモートファイルなどではゴミ箱の扱いが異なるため、削除時の確認に従ってください。
+既定の字下げは空白にし、Makefile などのモード指定や EditorConfig の指定を優先します。
+
+** 基本設定の宣言
 
 #+begin_src emacs-lisp
-  (use-package package-retry
-    :vc ( :url "https://github.com/kn66/package-retry.el.git"
-          :rev :newest)
-    ;; :load-path "~/.emacs.d/lisp/package-retry.el/"
-    ;; Enable retries before later declarations can install dependencies.
+  (use-package emacs
+    :ensure nil
+    :demand t
+    :custom
+    (use-short-answers t)
+    (isearch-lazy-count t)
+    (enable-recursive-minibuffers t)
+    (help-window-select t)
+    (mouse-yank-at-point t)
+    (scroll-preserve-screen-position t)
+    (scroll-error-top-bottom t)
+    (isearch-allow-scroll t)
+    (save-interprogram-paste-before-kill t)
+    (kill-do-not-save-duplicates t)
+    (mark-ring-max 64)
+    (global-mark-ring-max 64)
+    (completions-detailed t)
+    (next-error-message-highlight t)
+    (read-extended-command-predicate #'command-completion-default-include-p)
+    (describe-bindings-outline t)
+    (eval-expression-print-length 50)
+    (eval-expression-print-level 10)
+    (tab-always-indent 'complete)
+    (completion-ignore-case t)
+    (read-file-name-completion-ignore-case t)
+    (read-buffer-completion-ignore-case t)
+    (delete-by-moving-to-trash t)
+    (require-final-newline t)
+    :config
+    (setq-default indent-tabs-mode nil)
+    (column-number-mode +1)
+    (minibuffer-depth-indicate-mode +1))
+#+end_src
+
+* 状態ファイルとバックアップ
+
+作業中のディレクトリにバックアップや自動保存ファイルが散らばらないよう、
+=my-state-directory= を Emacs 設定ディレクトリ内の =var/= に定義します。
+保存先は起動時に作成します。
+
+- =backup-directory-alist=: バックアップを =var/backups/= にまとめます。
+- =auto-save-file-name-transforms=: 自動保存ファイルを =var/auto-save/= にまとめます。
+- =version-control=: 番号付きのバックアップを作成します。
+- =kept-new-versions= / =kept-old-versions=: 新しい世代を6個、古い世代を2個残します。
+- =delete-old-versions=: 保持数を超えた世代を自動で削除します。
+- =backup-by-copying=: コピーでバックアップし、元ファイルのハードリンクを維持します。
+
+#+begin_src emacs-lisp
+  (use-package files
+    :ensure nil
+    :demand t
+    :preface
+    (defvar my-state-directory (expand-file-name "var/" user-emacs-directory))
+    :init
+    (make-directory my-state-directory t)
+    (make-directory (expand-file-name "backups/" my-state-directory) t)
+    (make-directory (expand-file-name "auto-save/" my-state-directory) t)
+    :custom
+    (backup-directory-alist `(("." . ,(expand-file-name "backups/" my-state-directory))))
+    (auto-save-file-name-transforms `((".*" ,(expand-file-name "auto-save/" my-state-directory) t)))
+    (version-control t)
+    (kept-new-versions 6)
+    (kept-old-versions 2)
+    (delete-old-versions t)
+    (backup-by-copying t))
+#+end_src
+
+* EditorConfig でプロジェクトの書式を使う
+
+バックアップの EditorConfig 連携は、Emacs 30.2 / 31 の組み込み版で有効にします。
+=.editorconfig= の字下げ幅・タブの使用・改行などをファイルごとに適用します。
+追加のパッケージは不要です。Emacs の =.dir-locals.el= の指定がある場合はそちらを優先します。
+
+#+begin_src emacs-lisp
+  (use-package editorconfig
+    :ensure nil
     :demand t
     :config
-    (package-retry-mode 1))
+    (editorconfig-mode +1))
 #+end_src
 
-*** [[https://github.com/kn66/package-upgrade-guard.el][package-upgrade-guard]]
+* Dired の表示・コピー先・ファイル名検索
 
-This package displays diffs during package updates.
-Emacs 31 includes this as a standard feature.
+Dired は詳細を隠した状態で開き、ファイル名を見やすくします。
+=(= で詳細表示を切り替えられます。シンボリックリンクの参照先は表示します。
 
-#+begin_src emacs-lisp
-  (use-package package-upgrade-guard
-    :if (version< emacs-version "31")
-    :vc ( :url "https://github.com/kn66/package-upgrade-guard.el.git" :rev :newest)
-    ;; :load-path "~/.emacs.d/lisp/package-upgrade-guard.el/"
-    ;; Protect package operations from the beginning of initialization.
-    :demand t
-    :config
-    (setopt package-upgrade-guard-diff-mode 'security)
-    (package-upgrade-guard-mode 1))
-#+end_src
+=dired-dwim-target= を有効にし、別ウィンドウにも Dired があるときは、
+そのディレクトリをコピーや移動の既定の宛先にします。
 
-*** use-package
-
-Settings for the ~use-package~ macro, which concisely describes package installation and configuration.
-It has been built into Emacs since Emacs 29.
-
-#+begin_src emacs-lisp
-  (use-package use-package
-    :init
-    (setopt use-package-enable-imenu-support t ; Make use-package settings available through imenu.
-            use-package-always-ensure t        ; Apply :ensure t to all use-package declarations.
-            ))
-#+end_src
-
-** Built-in Emacs Feature Settings
-
-Customize various built-in Emacs features.
-
-*** Change yes-or-no Prompts to y-or-n
-
-Allow minibuffer prompts that ask for ~yes~ or ~no~ to be answered with ~y~ or ~n~.
-
-#+begin_src emacs-lisp
-  (setopt use-short-answers t)
-#+end_src
-
-*** Keep Versioned Backups and Create Lock Files
-
-Store backup files in a dedicated directory instead of next to the original files.
-Keep several generations so earlier contents can be recovered after accidental edits.
-Lock files warn when the same file is being edited by another Emacs process.
-
-#+begin_src emacs-lisp
-  (let ((backup-dir (locate-user-emacs-file "backups/")))
-    (make-directory backup-dir t)
-    (setopt make-backup-files t
-            backup-directory-alist `(("." . ,backup-dir))
-            version-control t
-            kept-new-versions 10
-            kept-old-versions 2
-            delete-old-versions t
-            create-lockfiles t))
-#+end_src
-
-*** Disable the Beep
-
-Prevent Emacs from sounding the beep used for errors and notifications.
-
-#+begin_src emacs-lisp
-  (setopt ring-bell-function 'ignore)
-#+end_src
-
-*** Start the Daemon
-
-Start Emacs as a server so it can accept connections from the ~emacsclient~ command.
-This makes it possible to open files quickly in the existing Emacs process.
-
-#+begin_src emacs-lisp
-  (use-package server
-    :ensure nil
-    :defer 1
-    :config
-    (unless (server-running-p)
-      (server-mode)))
-#+end_src
-
-*** Save the Last Cursor Position
-
-Restore the cursor position from the previous visit when opening a file.
-
-#+begin_src emacs-lisp
-  (use-package saveplace
-    :ensure nil
-    :defer 1
-    :config
-    (save-place-mode))
-#+end_src
-
-*** Save File Visit History
-
-Keep a list of recently opened files so they can be accessed again easily.
-
-#+begin_src emacs-lisp
-  (use-package recentf
-    :ensure nil
-    :defer 1
-    :config
-    (setopt recentf-max-saved-items 1024 ; Maximum number of history entries to save.
-            recentf-auto-cleanup 'never)
-    (recentf-mode))
-#+end_src
-
-*** Save Command History
-
-Save minibuffer input history, search and replace history, and similar data across Emacs sessions.
-
-#+begin_src emacs-lisp
-  (use-package savehist
-    :ensure nil
-    :defer 1
-    :init
-    (setopt history-delete-duplicates t
-            kill-do-not-save-duplicates t)
-    :config
-    (savehist-mode))
-#+end_src
-
-*** Automatically Insert Matching Delimiters
-
-Automatically insert matching closing delimiters or quotes when typing opening delimiters such as ~(~ or ~"~.
-
-#+begin_src emacs-lisp
-  (use-package elec-pair
-    :ensure nil
-    :init
-    (electric-pair-mode))
-#+end_src
-
-*** Reflect Edits from Other Processes in Buffers
-
-I used to use auto-revert, but on Windows it can take time to reflect changes when editing a large project and switching branches.
-I created a custom package to solve that problem.
-
-#+begin_src emacs-lisp
-  (use-package autorevert
-    :ensure nil
-    :defer 2
-    :init
-    (setopt global-auto-revert-non-file-buffers t)
-    :config
-    (global-auto-revert-mode))
-#+end_src
-
-*** Restore Previous Window Configurations
-
-Keep a history of window configurations.
-Use ~C-c <left>~ and ~C-c <right>~ to move backward and forward through the history.
-
-#+begin_src emacs-lisp
-  (use-package winner
-    :ensure nil
-    :init
-    (winner-mode 1))
-#+end_src
-
-*** Improve Dired Navigation
-
-When two Dired windows are visible, use the other window as the default target for copy and rename operations.
-Refresh Dired buffers when their directory contents change, and avoid accumulating unnecessary Dired buffers.
+=dired-isearch-filenames= を =dwim= にすると、ファイル名上で始めた
+インクリメンタル検索はファイル名を対象にします。
+=dired-aux= の読み込み後に設定します。
 
 #+begin_src emacs-lisp
   (use-package dired
     :ensure nil
     :defer t
-    :init
-    (setopt dired-dwim-target t))
-#+end_src
+    :hook
+    (dired-mode . dired-hide-details-mode)
+    :custom
+    (dired-dwim-target t)
+    (dired-hide-details-hide-symlink-targets nil))
 
-*** Move by camelCase Components
-
-Recognize compound words such as ~camelCase~ and ~snake_case~ as separate subwords.
-This enables cursor movement and editing operations by subword.
-
-#+begin_src emacs-lisp
-  (use-package subword
+  (use-package dired-aux
     :ensure nil
-    :init
-    (global-subword-mode))
+    :defer t
+    :config
+    (setopt dired-isearch-filenames 'dwim))
 #+end_src
 
-*** Move Deleted Files to the Trash
+* Dired でファイルをコピー・切り取り・貼り付けする
 
-When deleting files from Emacs, move them to the system trash instead of deleting them permanently immediately.
-
-#+begin_src emacs-lisp
-  (setopt delete-by-moving-to-trash t)
-#+end_src
-
-*** Require a Final Newline
-
-Ensure that text files end with a newline when they are saved.
+[[https://github.com/kn66/dired-clipboard.el][dired-clipboard]] を Dired バッファで自動的に有効にします。
+GNU ELPA・NonGNU ELPA・MELPA に未収録のため、=:vc= で公式リポジトリから取得します。
+=M-w= でマークしたファイル（マークがなければカーソル位置のファイル）をコピーし、
+=C-w= で切り取り、宛先の Dired バッファで =C-y= を押すと貼り付けます。
+範囲選択中の =M-w= / =C-w= と、WDired での編集操作は通常どおり使えます。
+Wayland でデスクトップのファイルマネージャーとも連携する場合は、
+=wl-copy= があるとファイル用のクリップボード形式を利用できます。
 
 #+begin_src emacs-lisp
-  (setopt require-final-newline t)
-#+end_src
-
-*** Enable Precise Pixel Scrolling
-
-Scroll smoothly according to mouse-wheel and touchpad input.
-The mode is harmless in terminal frames and remains available to graphical frames created by ~emacsclient~.
-
-#+begin_src emacs-lisp
-  (use-package pixel-scroll
+  (use-package dired-clipboard
     :ensure nil
-    :init
-    (pixel-scroll-precision-mode 1))
+    :vc (:url "https://github.com/kn66/dired-clipboard.el.git"
+  	    :rev :newest)
+    :hook (dired-mode . dired-clipboard-mode))
 #+end_src
 
-*** Make URLs and Email Addresses Clickable
+* Magit で Git を操作する
 
-Recognize URLs and email addresses in suitable text and programming buffers.
+Emacs 標準のパッケージ管理機能で NonGNU ELPA から Magit をインストールします。
+=:ensure t= により、未導入の場合は初回読み込み時にインストールします。
+=C-x g= または =M-x magit-status= で、現在のディレクトリの Git 状態を開きます。
+Magit 本体はコマンドを実行するまで読み込みを遅らせます。
+
+状態画面では =TAB= で差分を展開し、=s= でステージ、=u= でステージ解除、
+=c c= でコミットします。コミットメッセージは =C-c C-c= で確定します。
+=?= で操作メニュー、=q= で画面を閉じます。
 
 #+begin_src emacs-lisp
-  (use-package goto-addr
-    :ensure nil
-    :init
-    (global-goto-address-mode 1))
+  (use-package magit
+    :ensure t
+    :pin nongnu
+    :bind ("C-x g" . magit-status))
 #+end_src
 
-*** Enable Context Menus
+* バッファ一覧を Ibuffer に切り替える
 
-Enable the built-in context menu used by mouse and touch input.
-This also activates context-menu entries registered by packages such as Denote.
+標準の =list-buffers= を =ibuffer= に置き換えます。
+=C-x C-b= から、絞り込み・グループ化・一括操作ができるバッファ一覧を開けます。
+
+#+begin_src emacs-lisp
+  (use-package ibuffer
+    :ensure nil
+    :bind ([remap list-buffers] . ibuffer))
+#+end_src
+
+* Imenu の索引を更新する
+
+=imenu-auto-rescan= により、編集後は関数や見出しの索引を作り直します。
+自動更新は Imenu が定めるバッファサイズの上限内で行われます。
+
+#+begin_src emacs-lisp
+  (use-package imenu
+    :ensure nil
+    :defer t
+    :custom
+    (imenu-auto-rescan t))
+#+end_src
+
+* Emacs Lisp の診断
+
+Emacs Lisp の編集時に =flymake-mode= を有効にします。
+組み込みの診断機能を利用するため、外部のチェッカーは不要です。
+=C-h .= で診断の詳細、=M-x flymake-show-buffer-diagnostics= で診断一覧を確認できます。
+診断メッセージを行末にも表示し、編集後1.5秒で再診断します。
+
+#+begin_src emacs-lisp
+  (use-package flymake
+    :ensure nil
+    :custom
+    (flymake-show-diagnostics-at-end-of-line t)
+    (flymake-no-changes-timeout 1.5)
+    :hook (emacs-lisp-mode . flymake-mode))
+#+end_src
+
+* Org の表示・操作・タスク記録
+
+- =visual-line-mode=: 長い行を画面幅で折り返します。ファイルに改行は挿入しません。
+- =org-startup-indented=: 見出しの階層に合わせて本文を視覚的に字下げします。空白は挿入しません。
+- =org-return-follows-link=: リンク上の =RET= でリンク先を開きます。
+- =org-special-ctrl-a/e=: =C-a= / =C-e= で見出しやタグを考慮した行頭・行末移動を行います。
+- =org-log-done=: TODO を完了にした時刻を =CLOSED= として記録します。
+- =org-log-into-drawer=: その他のタスク操作のログを =LOGBOOK= ドロワーにまとめます。
+- =org-src-fontify-natively=: ソースコードを言語ごとに色分けします。
+- =org-src-tab-acts-natively=: ソースコード内の =TAB= で言語に応じた字下げを行います。
+
+Org 固有の変数を =:custom= にまとめ、Org 本体の読み込みは必要になるまで遅らせます。
+
+#+begin_src emacs-lisp
+  (use-package org
+    :ensure nil
+    :defer t
+    :hook (org-mode . visual-line-mode)
+    :custom
+    (org-startup-indented t)
+    (org-return-follows-link t)
+    (org-special-ctrl-a/e t)
+    (org-log-done 'time)
+    (org-log-into-drawer t)
+    (org-src-fontify-natively t)
+    (org-src-tab-acts-natively t))
+#+end_src
+
+* コードの折りたたみ
+
+Emacs Lisp、C 系言語、JavaScript のバッファで =hs-minor-mode= を有効にします。
+有効化しただけではコードを隠しません。
+=C-c @ C-h= でブロックを隠し、=C-c @ C-s= で再表示します。
+
+#+begin_src emacs-lisp
+  (use-package hideshow
+    :ensure nil
+    :hook ((emacs-lisp-mode . hs-minor-mode)
+           (c-mode-common . hs-minor-mode)
+           (js-mode . hs-minor-mode)))
+#+end_src
+
+* 画面外の対応する括弧を表示する
+
+=show-paren-context-when-offscreen= を =overlay= にし、対応する開き括弧が
+画面外にある場合は、その周辺をウィンドウ上部に重ねて表示します。
+=show-paren-mode= を起動時に有効にし、対応する括弧を強調します。
+
+#+begin_src emacs-lisp
+  (use-package paren
+    :ensure nil
+    :demand t
+    :custom
+    (show-paren-context-when-offscreen 'overlay)
+    :config
+    (show-paren-mode +1))
+#+end_src
+
+* ミニバッファと検索の履歴
+
+=history-length= を300にし、履歴の保持数を増やします。
+=history-delete-duplicates= で重複を除きます。
+Savehist の読み込み後に =search-ring= と =regexp-search-ring= を保存対象へ追加し、
+通常の入力履歴に加えて文字列検索と正規表現検索の履歴も次回へ引き継ぎます。
+=savehist-mode= を起動時に有効にし、履歴を保存・復元します。
+
+#+begin_src emacs-lisp
+  (use-package savehist
+    :ensure nil
+    :demand t
+    :custom
+    (history-length 300)
+    (history-delete-duplicates t)
+    :config
+    (dolist (variable '(search-ring regexp-search-ring))
+      (add-to-list 'savehist-additional-variables variable))
+    (savehist-mode +1))
+#+end_src
+
+* 同名ファイルのバッファ名を区別する
+
+=uniquify-buffer-name-style= を =forward= にし、同じ名前のファイルを開いた場合に
+=src/config.el= と =tests/config.el= のようなディレクトリ付きの名前で区別します。
+
+#+begin_src emacs-lisp
+  (use-package uniquify
+    :ensure nil
+    :defer t
+    :custom
+    (uniquify-buffer-name-style 'forward))
+#+end_src
+
+* Ediff のウィンドウ配置
+
+=ediff-window-setup-function= に =ediff-setup-windows-plain= を指定し、
+比較操作を現在のフレーム内にまとめます。
+=ediff-split-window-function= に =split-window-horizontally= を指定し、
+比較対象を左右に並べます。
+
+#+begin_src emacs-lisp
+  (use-package ediff
+    :ensure nil
+    :defer t
+    :custom
+    (ediff-window-setup-function #'ediff-setup-windows-plain)
+    (ediff-split-window-function #'split-window-horizontally))
+#+end_src
+
+* 右クリックのメニュー
+
+右クリックで状況に応じたメニューを開きます。
 
 #+begin_src emacs-lisp
   (use-package mouse
     :ensure nil
-    :init
-    (context-menu-mode 1))
-#+end_src
-
-*** Do Not Display native-comp Warnings
-
-Suppress asynchronous warning and error messages from native compilation.
-
-#+begin_src emacs-lisp
-  (setopt native-comp-async-report-warnings-errors 'silent)
-#+end_src
-
-*** Garbage Collection
-
-Adjust the threshold because the default settings can trigger garbage collection (GC) frequently.
-I previously used the ~gcmh~ package, but based on reports that timer-triggered GC can cause unintended memory allocation,
-I switched to adjusting ~gc-cons-percentage~ as recommended in the [[https://emacsconf.org/2023/talks/gc/][EmacsConf 2023 talk]].
-
-#+begin_src emacs-lisp
-  (setopt gc-cons-percentage 0.2
-          gc-cons-threshold (* 128 1024 1024))
-#+end_src
-
-*** Optimize Files with Long Lines
-
-Improve performance when opening files that contain very long lines.
-
-#+begin_src emacs-lisp
-  (use-package so-long
-    :defer 1
+    :demand t
     :config
-    (global-so-long-mode))
+    (context-menu-mode +1))
 #+end_src
 
-*** Visualize Trailing Spaces and Tabs
+* ウィンドウ配置の復元
 
-Visually display unnecessary trailing whitespace, such as spaces and tabs, in buffers.
+バックアップで利用していた組み込みの Winner を有効にします。
+=C-c <left>= で分割や表示バッファの変更前の配置へ戻り、
+=C-c <right>= で配置をやり直します。バッファ内の編集の Undo とは別の履歴です。
 
 #+begin_src emacs-lisp
-  (setopt show-trailing-whitespace t)
+  (use-package winner
+    :ensure nil
+    :demand t
+    :config
+    (winner-mode +1))
 #+end_src
 
-*** delsel
+* ピクセル単位のスクロールとリンク操作
 
-When typing while the region is active, delete the selected text before inserting the new text.
-This is the so-called CUA style.
+GUI では =pixel-scroll-precision-mode= によりタッチパッドなどで細かくスクロールできます。
+端末で起動した場合も、後から作成した GUI フレームで利用できます。
+文章では =goto-address-mode=、プログラムでは =goto-address-prog-mode= により、
+URL やメールアドレスを =C-c RET= やマウスの中ボタンで開けるようにします。
+プログラムではコメントと文字列だけを対象にします。
+
+#+begin_src emacs-lisp
+  (use-package pixel-scroll
+    :ensure nil
+    :demand t
+    :config
+    (pixel-scroll-precision-mode +1))
+
+  (use-package goto-addr
+    :ensure nil
+    :hook ((text-mode . goto-address-mode)
+           (prog-mode . goto-address-prog-mode)))
+#+end_src
+
+* 選択範囲の置き換え
+
+範囲を選択した状態で入力すると、その範囲を置き換えます。
 
 #+begin_src emacs-lisp
   (use-package delsel
     :ensure nil
-    :init
-    (delete-selection-mode))
-#+end_src
-
-*** Change the Maximum Read Size for External Processes
-
-Set the maximum amount of data Emacs reads from an external process at once to 1 MB.
-This helps prevent process output from being truncated when working with processes that produce large amounts of output, such as LSP servers.
-
-#+begin_src emacs-lisp
-  (setopt read-process-output-max (* 1024 1024))
-#+end_src
-
-*** Other Convenient Settings
-
-Convenient settings borrowed from Protesilaos Stavrou's configuration file, dotemacs.
-
-**** [[https://protesilaos.com/emacs/dotemacs][Protesilaos]]
-
-***** Save Clipboard Contents Before Adding New Text to the Kill Ring
-
-Just before adding new text to the kill ring, that is, when running a kill command,
-save the current clipboard contents in Emacs's internal storage.
-This prevents content copied from other applications from being unintentionally overwritten by kill operations inside Emacs.
-
-#+begin_src emacs-lisp
-  (setopt save-interprogram-paste-before-kill t)
-#+end_src
-
-*** project.el
-
-Settings for Emacs's built-in project management feature, ~project.el~.
-Add project root markers and configure directories to ignore.
-
-#+begin_src emacs-lisp
-  (use-package project
-    :defer t
+    :demand t
     :config
-    (setopt project-vc-extra-root-markers '(".dir-locals.el" "package.json")))
+    (delete-selection-mode +1))
 #+end_src
 
-*** repeat-mode
+* 括弧と引用符の自動入力
 
-~repeat-mode~ removes the need to enter the prefix key repeatedly when running certain commands in sequence.
-For example, after running ~C-x o~ (other-window), pressing only ~o~ can repeat window switching.
+括弧や引用符の対応する閉じ文字を自動で入力します。
 
 #+begin_src emacs-lisp
-  (use-package repeat
+  (use-package elec-pair
     :ensure nil
-    :init
-    (repeat-mode))
-#+end_src
-
-*** flymake
-
-This is Emacs's built-in syntax checking framework.
-It detects and displays code errors and warnings in real time.
-A similar package is [[https://github.com/flycheck/flycheck][flycheck]].
-The indicator is disabled because it conflicts with treesit-fold, and error messages are shown at the end of lines instead.
-
-#+begin_src emacs-lisp
-  (use-package flymake
-    :hook ((prog-mode
-            conf-mode) . flymake-mode)
-    :init
-    (setopt flymake-indicator-type nil
-            flymake-show-diagnostics-at-end-of-line t
-            flymake-no-changes-timeout 1.5))
-#+end_src
-
-*** Use Spaces as the Default Indentation Style
-
-Basic settings for indenting with spaces instead of tab characters.
-Unless a mode explicitly overrides this, formatting is aligned around spaces.
-
-#+begin_src emacs-lisp
-  (use-package simple
-    :ensure nil
-    :defer t
-    :init
-    (setopt indent-tabs-mode nil))
-#+end_src
-
-*** gnus
-
-Settings for using Gnus as a mail reader.
-Because actual mail server information contains personal information, detailed settings are written in ~~/.authinfo.gpg~ and ~~/.gnus~.
-
-#+begin_src emacs-lisp
-  (use-package gnus
-    :ensure nil
-    :defer 10
+    :demand t
     :config
-    (require 'bbdb)
-    (setopt gnus-show-threads nil)
-
-    ;; Check POP3 every 5 minutes.
-    (gnus-demon-add-handler
-     'gnus-group-get-new-news
-     5 nil)
-
-    (gnus-demon-init))
+    (electric-pair-mode +1))
 #+end_src
 
-**** [[https://www.gnu.org/software/emacs/manual/html_node/eudc/BBDB.html][bbdb]]
+* Puni で括弧の対応を保ちながら編集する
 
-BBDB (The Insidious Big Brother Database) is a contact management system for Emacs.
+[[https://github.com/AmaiKinono/puni][Puni]] をプログラミング用モード、SGML・XML・TeX と =M-:= の入力欄で有効にします。
+MELPA からインストールします。
+=DEL= / =C-d= / =M-DEL= / =M-d= / =C-k= などの削除操作で、括弧や引用符の対応を保ちます。
+対応する閉じ文字の自動入力は、上の =electric-pair-mode= が担当します。
 
 #+begin_src emacs-lisp
-  (use-package bbdb
-    :defer t
-    :init
-    (setopt bbdb-file (locate-user-emacs-file "bbdb")
-            bbdb-mua-auto-action 'create
-            bbdb-mua-action 'create
-            bbdb-mua-pop-up nil
-            bbdb-add-name t ; Automatically approve renaming existing records.
-            bbdb-add-aka t ; Automatically approve adding aliases.
-            bbdb-message-all-addresses t
-            bbdb-message-try-all-headers t
-            bbdb-completion-display-record nil
-            bbdb-complete-mail-allow-cycling t)
+  (use-package puni
+    :ensure t
+    :pin melpa
+    :hook ((prog-mode sgml-mode nxml-mode tex-mode
+                      eval-expression-minibuffer-setup) . puni-mode))
+#+end_src
+
+* Expreg で選択範囲を拡大・縮小する
+
+[[https://elpa.gnu.org/packages/expreg.html][Expreg]] を GNU ELPA から導入します。
+=C-== で単語や式などの単位に沿って選択範囲を広げ、=C-+= で前の範囲へ戻します。
+コマンドを実行するまで読み込みを遅らせます。
+
+#+begin_src emacs-lisp
+  (use-package expreg
+    :ensure t
+    :pin gnu
+    :bind (("C-=" . expreg-expand)
+           ("C-+" . expreg-contract)))
+#+end_src
+
+* Nucleo による補完候補の照合
+
+MELPA から =nucleo-completion= をインストールし、
+通常の補完では =nucleo= を優先し、=basic= をフォールバックとして使います。
+=nucleo-completion-ensure-module= で Rust モジュールを準備します。
+利用可能なモジュールがない場合は、パッケージが対応する配布済みモジュールを取得します。
+
+日本語の Migemo 検索を有効にします。辞書はモジュールへ同梱されているため、
+外部の =cmigemo= や =migemo.el= は不要です。
+大文字・小文字を区別しない既存設定をそのまま使用します。
+
+Fido はミニバッファの準備時に =flex= を優先するため、
+=icomplete-minibuffer-setup-hook= で Nucleo を優先し直します。
+カテゴリ別の照合方式も同様に調整しますが、候補取得を担当する
+=external= スタイルと、それ以外のカテゴリ設定は維持します。
+
+#+begin_src emacs-lisp
+  (use-package nucleo-completion
+    :ensure t
+    :pin melpa
+    :demand t
+    :preface
+    (defun my-nucleo-completion-category-defaults (categories)
+      "Return CATEGORIES with Nucleo preferred for ordinary completion."
+      (let ((defaults (copy-tree categories)))
+        (dolist (category defaults defaults)
+          (let ((styles (assq 'styles (cdr category))))
+            ;; External styles own their candidate retrieval and must stay first.
+            (when (and styles (not (memq 'external (cdr styles))))
+              (setcdr styles
+                      (cons 'nucleo
+                            (remq 'nucleo (remq 'flex (cdr styles))))))))))
+
+    (defun my-nucleo-completion-fido-setup ()
+      "Prefer Nucleo after Fido installs its local completion settings."
+      (setq-local completion-styles (default-value 'completion-styles)
+                  completion-category-defaults
+                  (my-nucleo-completion-category-defaults
+                   completion-category-defaults)))
+    :hook
+    (icomplete-minibuffer-setup . my-nucleo-completion-fido-setup)
+    :custom
+    (completion-styles '(nucleo basic))
+    (nucleo-completion-languages '(japanese))
     :config
-    (bbdb-initialize 'gnus 'message)
-    (bbdb-mua-auto-update-init 'gnus 'message)
-    (add-hook 'gnus-startup-hook #'bbdb-insinuate-gnus))
+    (nucleo-completion-ensure-module)
+    (setq completion-category-defaults
+          (my-nucleo-completion-category-defaults completion-category-defaults)))
 #+end_src
 
-**** [[https://gitlab.com/wavexx/gnus-desktop-notify.el/][gnus-desktop-notify.el]]
+* ミニバッファの縦型補完
 
-This package displays desktop notifications when new mail arrives.
-It works with ~gnus-demon~ to check mail periodically and notify when new messages are available.
-
-#+begin_src emacs-lisp
-  (use-package gnus-desktop-notify
-    :after gnus
-    :config
-    (gnus-desktop-notify-mode)
-    (gnus-demon-add-rescan))
-#+end_src
-
-**** Visualize the Fill Column
-
-By default, newline characters are inserted at column 72.
-Enable the fill column indicator to show that position visually.
-
-#+begin_src emacs-lisp
-  (use-package message
-    :ensure nil
-    :hook (message-mode . display-fill-column-indicator-mode))
-#+end_src
-
-*** Support Nested Minibuffers
-
-Allow commands that use the minibuffer to be invoked while another minibuffer is active.
-Display the nesting depth in the minibuffer prompt to make nested sessions apparent.
-
-#+begin_src emacs-lisp
-  (setopt enable-recursive-minibuffers t)
-
-  (use-package mb-depth
-    :ensure nil
-    :init
-    (minibuffer-depth-indicate-mode 1))
-#+end_src
-
-*** fido-vertical
+ミニバッファの補完候補を縦に並べ、Fido の操作で選択します。
 
 #+begin_src emacs-lisp
   (use-package icomplete
     :ensure nil
-    :bind ( :map icomplete-minibuffer-map
-            ("<backspace>" . icomplete-fido-backward-updir)
-            ("C-." . nil)
-            ("C-," . nil)
-            :map icomplete-fido-mode-map
-            ("SPC" . self-insert-command))
-    :init
-    (fido-vertical-mode))
-#+end_src
-
-** Theme
-
-#+begin_src emacs-lisp
-  (use-package commentary-theme
+    :demand t
     :config
-    (load-theme 'commentary t))
+    (fido-vertical-mode +1))
 #+end_src
 
-** org
+* バッファ内の補完
 
-Basic settings for ~org-mode~.
+[[https://github.com/minad/corfu#configuration][Corfu README の設定例]]に沿って、バッファ内の =completion-at-point= の候補をポップアップで表示します。
+=M-TAB=、または字下げ済みの位置で =TAB= を押すと手動で補完を開始します。
+候補は最大12件、幅は24〜80文字で表示し、一覧の端から次へ進むと循環します。
+候補のプレビューと先頭候補の自動選択を無効にし、選んだ候補を明示的に確定します。
+候補の照合には既存の Nucleo と basic を使います。
+自動補完は無効にし、ミニバッファでは Fido を使います。
+Emacs 30 のポップアップは GUI で利用でき、端末では標準の補完表示にフォールバックします。
+[[https://github.com/minad/corfu#readme][Emacs 31 では端末の子フレームにも対応]]しており、同じ設定で端末にもポップアップを表示できます。
+既存の =global-completion-preview-mode= は表示が重複するため無効にします。
 
-#+begin_src emacs-lisp
-  (use-package org
-    :defer t
-    :init
-    (setopt org-return-follows-link t  ; Open links with the Return key.
-            org-default-notes-file "~/org/inbox.org"
-            org-log-done 'time))
-#+end_src
+補完一覧を表示中は次のキーを使います。
 
-*** org-agenda
-
-~org-agenda~ is a standard feature for collecting TODOs and scheduled items from multiple Org files.
-Here, the target directory is set to ~/org/~.
-
-#+begin_src emacs-lisp
-  (use-package org-agenda
-    :defer t
-    :ensure nil
-    :config
-    (setopt org-agenda-files '("~/org/")
-            org-agenda-span 14
-            org-agenda-start-day "0d")
-    (add-to-list 'org-agenda-custom-commands '("D" "Old done tasks" tags "TODO=\"DONE\"+CLOSED<=\"<-7d>\"")))
-#+end_src
-
-*** [[https://protesilaos.com/emacs/denote][denote]]
-
-This is a simple personal note management system.
-It supports multiple formats, including Org, Markdown, and plain text.
-Notes can be organized without a dedicated database by including the date, title, and tags in file names.
-
-#+begin_src emacs-lisp
-  (use-package denote
-    :after org
-    :config
-    ;; Highlight Denote links even in text modes.
-    (add-hook 'text-mode-hook #'denote-fontify-links-mode)
-    ;; Enable Denote-related features when opening Denote directories in Dired.
-    (add-hook 'dired-mode-hook #'denote-dired-mode-in-directories)
-    ;; Add Denote operations to the context menu.
-    (add-hook 'context-menu-functions #'denote-context-menu)
-
-    ;; Automatically rename buffers to match Denote note titles.
-    (denote-rename-buffer-mode))
-#+end_src
-
-*** [[https://github.com/0x60df/ox-qmd][ox-qmd]] (for Qiita Posts)
-
-Converts Org files to Markdown files.
-Built-in conversion commands exist, but ox-qmd output works better with Qiita.
-
-#+begin_src emacs-lisp
-  (use-package ox-qmd :defer t)
-#+end_src
-
-** IME (Japanese Input Method)
-
-*** [[https://ddskk.readthedocs.io/ja/latest/index.html][ddskk]]
-
-I used to use [[https://github.com/trueroad/tr-emacs-ime-module][tr-ime]] and mozc, but I am trying to switch to ddskk.
-I am practicing while reading the [[https://ddskk.readthedocs.io/ja/latest/05_basic.html][usage guide]].
-For the previous configuration method, see my [[https://qiita.com/nobuyuki86/items/122e85b470b361ded0b4#ime][older article]].
-
-**** Dictionary Installation on Ubuntu/Debian
-
-#+begin_src shell
-  sudo apt install skkdic skkdic-extra
-#+end_src
-
-**** Dictionary Installation on Windows
-
-Download dictionaries from [[https://skk-dev.github.io/dict/][this page]] and place them in the appropriate location.
-I store them in the .skk directory under the user directory.
-
-**** ddskk Settings
-
-#+begin_src emacs-lisp
-  (use-package ddskk
-    :defer t
-    :init
-    (require 'skk-study)
-    (setopt default-input-method "japanese-skk"
-            skk-dcomp-multiple-activate t
-            skk-dcomp-activate t
-            skk-show-inline t
-            skk-sticky-key ";"
-            skk-status-indicator 'minor-mode)
-
-    (cond (IS-LINUX
-           (setopt skk-large-jisyo "~/.emacs.d/skk-get-jisyo/SKK-JISYO.L"
-                   skk-extra-jisyo-file-list '("~/.emacs.d/skk-get-jisyo/SKK-JISYO.geo"
-                                               "~/.emacs.d/skk-get-jisyo/SKK-JISYO.jinmei"
-                                               "~/.emacs.d/skk-get-jisyo/SKK-JISYO.propernoun"
-                                               "~/.emacs.d/skk-get-jisyo/SKK-JISYO.station"
-                                               "~/.emacs.d/skk-get-jisyo/SKK-JISYO.law")))
-          (IS-WINDOWS
-           (setopt skk-large-jisyo (expand-file-name ".skk/SKK-JISYO.L" (getenv "USERPROFILE"))
-                   skk-extra-jisyo-file-list
-                   (list (expand-file-name ".skk/SKK-JISYO.geo" (getenv "USERPROFILE"))
-                         (expand-file-name ".skk/SKK-JISYO.jinmei" (getenv "USERPROFILE"))
-                         (expand-file-name ".skk/SKK-JISYO.fullname" (getenv "USERPROFILE"))
-                         (expand-file-name ".skk/SKK-JISYO.propernoun" (getenv "USERPROFILE"))
-                         (expand-file-name ".skk/SKK-JISYO.station" (getenv "USERPROFILE"))
-                         (expand-file-name ".skk/SKK-JISYO.mazegaki" (getenv "USERPROFILE")))))))
-#+end_src
-
-** [[https://github.com/minad/corfu][corfu]]
-
-This package enhances Emacs's completion UI.
-It is lightweight and deeply integrated with Emacs's built-in completion features.
-Similar packages include [[https://github.com/company-mode/company-mode][company-mode]] and [[https://github.com/auto-complete/auto-complete][auto-complete]].
-I previously used ~orderless-flex~ for fuzzy completion, but after reading [[https://github.com/minad/corfu/wiki#advanced-variants-for-separator-handling][this wiki page]],
-I changed the configuration to use separators.
+| キー | 操作 |
+|------+------|
+| =C-n= / =M-n= / 下矢印 | 次の候補 |
+| =C-p= / =M-p= / 上矢印 / =Shift-TAB= | 前の候補 |
+| =TAB= | 共通部分を補完、候補選択中はその候補で補完 |
+| =RET= | 選択した候補を確定、未選択なら一覧を閉じる |
+| =M-q= | 候補に表示された短いキーを入力して直接確定 |
+| =M-h= / =M-g= | 候補の説明 / 定義位置を表示 |
+| =M-t= | 説明ポップアップの表示切り替え |
+| =C-M-v= / =C-M-S-v= | 説明ポップアップを下 / 上へスクロール |
+| =C-g= | 補完を中止 |
 
 #+begin_src emacs-lisp
   (use-package corfu
-    :bind ( :map corfu-map
-            ("TAB" . corfu-next)
-            ([tab] . corfu-next)
-            ("S-TAB" . corfu-previous)
-            ([backtab] . corfu-previous))
-    :init
-    (setopt corfu-cycle t
-            corfu-auto t
-            corfu-auto-prefix 1
-            corfu-auto-delay 0.1
-            corfu-preselect 'prompt
-            corfu-quit-no-match t
-            corfu-on-exact-match 'show)
-
-    (global-corfu-mode))
+    :ensure t
+    :pin gnu
+    :demand t
+    :bind (:map corfu-map
+                ("C-n" . corfu-next)
+                ("C-p" . corfu-previous)
+                ("<backtab>" . corfu-previous))
+    :custom
+    (corfu-auto nil)
+    (corfu-cycle t)
+    (corfu-count 12)
+    (corfu-min-width 24)
+    (corfu-max-width 80)
+    (corfu-preview-current nil)
+    (corfu-preselect 'prompt)
+    (global-corfu-minibuffer nil)
+    :config
+    (global-completion-preview-mode -1)
+    (global-corfu-mode +1))
 #+end_src
 
-*** corfu-popupinfo
+** 補完履歴・候補への直接移動・説明表示
 
-This extension displays additional completion candidate information, such as documentation and type information, in a popup.
+=corfu-history-mode= で選択履歴を記録し、既存の Savehist で次回起動時にも引き継ぎます。
+補完元に並び順の指定がない場合は、最近使った候補を優先します。
+Nucleo や Cape が指定する順序はそのまま使います。
+=corfu-quick= は =M-q= を押したときに読み込み、表示されたキーで候補を直接選択します。
 
-#+begin_src emacs-lisp
-  (use-package corfu-popupinfo
-    :ensure nil
-    :after corfu
-    :hook (corfu-mode . corfu-popupinfo-mode))
-#+end_src
-
-*** corfu-history
-
-Save the history of completion candidates selected with Corfu and prioritize them in future completions.
-By integrating with ~savehist-mode~, the history is persisted across Emacs sessions.
+=corfu-popupinfo-mode= は、候補に説明があれば別のポップアップに表示します。
+初回は1秒、候補を移動した後は0.5秒待って更新し、最大20行まで表示します。
+=M-h= で説明をすぐに表示でき、=M-t= で自動表示を切り替えられます。
 
 #+begin_src emacs-lisp
   (use-package corfu-history
     :ensure nil
     :after corfu
-    :init
-    (corfu-history-mode)
+    :demand t
+    :config
+    (corfu-history-mode +1)
     (with-eval-after-load 'savehist
       (add-to-list 'savehist-additional-variables 'corfu-history)))
-#+end_src
 
-*** Built-in Emacs Settings for Corfu
-
-Settings for built-in Emacs features that make Corfu more comfortable to use.
-
-#+begin_src emacs-lisp
-  (use-package emacs
+  (use-package corfu-quick
     :ensure nil
-    :init
-    (setopt tab-always-indent 'complete))
+    :after corfu
+    :bind (:map corfu-map
+                ("M-q" . corfu-quick-insert)))
+
+  (use-package corfu-popupinfo
+    :ensure nil
+    :after corfu
+    :demand t
+    :custom
+    (corfu-popupinfo-delay '(1.0 . 0.5))
+    (corfu-popupinfo-max-height 20)
+    :config
+    (corfu-popupinfo-mode +1))
 #+end_src
 
-*** [[https://github.com/minad/cape][cape]] (Completion At Point Extensions)
+** Cape による補完候補の追加
 
-This package collection extends Emacs's standard completion interface, ~completion-at-point-functions~ (CAPF).
-It makes it easy to add and manage completion sources, which are functions that provide candidates, for completion UIs such as Corfu and Company.
+[[https://github.com/minad/cape#configuration][Cape README の設定例]]に沿って、=C-c p= を各補完コマンドのプレフィックスにします。
+=C-c p ?= で一覧を確認できます。各モードの設定が完了した後、モード既定の CAPF と
+=tempel-complete=、=cape-dabbrev= を =cape-capf-super= で組み合わせます。
+モードの補完候補、テンプレート名、バッファ内の単語を同じ候補一覧に表示します。
+CAPF 内の =t= はグローバルの補完関数に展開し、繰り返し設定しても二重に包みません。
+ミニバッファは対象外とし、ファイル名と Org 内の Emacs Lisp コードブロックの
+補完は従来どおり先に試します。Cape は補完の開始位置が同じ候補を統合します。
 
 #+begin_src emacs-lisp
   (use-package cape
-    :hook (((prog-mode
-             text-mode
-             conf-mode
-             eglot-managed-mode) . my/cape-setup-capfs))
+    :ensure t
+    :pin gnu
+    :demand t
+    :bind ("C-c p" . cape-prefix-map)
     :config
-    (require 'cl-lib)
-    (autoload 'cape-keyword "cape-keyword" nil t)
-    (autoload 'tempel-complete "tempel" nil t)
+    (defvar-local my-cape-super-capf nil
+      "Merged completion function for the current major mode.")
 
-    (defvar-local my/cape--base-capfs nil)
-    (defvar-local my/cape--super-capf nil)
+    (defun my-cape-setup-capf ()
+      "Merge the mode's completion functions with Tempel and dabbrev."
+      (unless (or (minibufferp)
+                  (and my-cape-super-capf
+                       (memq my-cape-super-capf completion-at-point-functions)))
+        (let ((capfs
+               (mapcan (lambda (capf)
+                         (if (eq capf t)
+                             (copy-sequence
+                              (default-value 'completion-at-point-functions))
+                           (list capf)))
+                       completion-at-point-functions)))
+          (setq-local my-cape-super-capf
+                      (apply #'cape-capf-super
+                             (delete-dups
+                              (append capfs
+                                      (list #'tempel-complete #'cape-dabbrev))))
+                      completion-at-point-functions
+                      (list #'cape-elisp-block #'cape-file my-cape-super-capf)))))
 
-    (defvar my/cape--dabbrev-min-2-capf
-      (cape-capf-prefix-length #'cape-dabbrev 2))
-
-    (defun my/cape-setup-capfs ()
-      (unless (minibufferp)
-        (let ((capfs (cl-remove-if
-                      (lambda (capf)
-                        (or (memq capf '(t
-                                         cape-file
-                                         cape-elisp-block
-                                         tempel-complete
-                                         cape-keyword))
-                            (eq capf my/cape--super-capf)
-                            (eq capf my/cape--dabbrev-min-2-capf)
-                            (not (functionp capf))))
-                      completion-at-point-functions)))
-          (when capfs
-            (setq-local my/cape--base-capfs
-                        (cl-delete-duplicates
-                         (append capfs my/cape--base-capfs)
-                         :test #'eq))))
-        (setq-local my/cape--super-capf
-                    (lambda ()
-                      (funcall
-                       (cape-capf-noninterruptible
-                        (cape-capf-buster
-                         (cape-capf-sort
-                          (cape-capf-nonexclusive
-                           (apply #'cape-capf-super
-                                  (append (list #'tempel-complete)
-                                          my/cape--base-capfs
-                                          (list my/cape--dabbrev-min-2-capf
-                                                #'cape-keyword))))))))))
-        (setq-local completion-at-point-functions
-                    (list #'cape-file
-                          #'cape-elisp-block
-                          my/cape--super-capf
-                          t)))))
+    (add-hook 'after-change-major-mode-hook #'my-cape-setup-capf))
 #+end_src
 
-*** [[https://codeberg.org/akib/emacs-corfu-terminal][corfu-terminal]]
+** Tempel によるテンプレート
 
-By default, Corfu does not support popup display in terminal environments (CUI).
-Installing this package makes Corfu completion candidates display properly in terminals.
-From Emacs 31 onward, Emacs's built-in child frame support is expected to work in terminals, so this package should no longer be necessary.
+[[https://github.com/minad/tempel#configuration][Tempel README の設定例]]に沿って、=M-+= でテンプレート名を補完し、
+=M-*= で一覧から選択して挿入します。通常の補完でも、上記の Cape 設定により
+テンプレート名を他の候補と一緒に選択し、展開できます。
+挿入したテンプレートの入力欄は =M-{= と =M-}= で移動します。
+[[https://github.com/Crandel/tempel-collection#installation][tempel-collection]] のテンプレートも Tempel の読み込み後に利用します。
+Emacs 31.1 以上では [[https://github.com/Crandel/tempel-collection#installation][公式の導入例]]に沿って MELPA 版を使います。
+それ以前（Emacs 30.2 や 31.0 の開発版）では、Emacs 29.1 以上に対応する
+[[https://github.com/Crandel/tempel-collection/commit/e833839e3638b97878247407199f3034d1cf8685][リビジョン e833839]] を =:vc= で取得し、固定します。
+バージョンは起動時に判定するため、職場と自宅で設定ファイルを書き換える必要はありません。
+すでに VC 版を導入済みの環境では、この分岐だけで MELPA 版への入れ替えは行いません。
+Emacs 31.1 以上で MELPA 版へ移行する場合は、=M-x package-delete= で
+=tempel-collection= を削除してから Emacs を再起動します。
 
 #+begin_src emacs-lisp
-  (use-package corfu-terminal
-    :if (version< emacs-version "31")
-    :after corfu
-    :unless (display-graphic-p)
-    :config
-    (corfu-terminal-mode))
+  (use-package tempel
+    :ensure t
+    :pin gnu
+    :bind (("M-+" . tempel-complete)
+           ("M-*" . tempel-insert)))
+
+  (if (version< emacs-version "31.1")
+      (use-package tempel-collection
+        :ensure nil
+        :vc (:url "https://github.com/Crandel/tempel-collection.git"
+  	        :rev "e833839e3638b97878247407199f3034d1cf8685")
+        :after tempel
+        :demand t)
+    (use-package tempel-collection
+      :ensure t
+      :pin melpa
+      :after tempel
+      :demand t))
 #+end_src
 
-*** corfu-magic
+* Consult による検索と移動
 
-Keybindings are configured based on the [[https://github.com/emacs-evil/evil-collection/blob/master/modes/corfu/evil-collection-corfu.el][evil-collection]] settings.
-Pressing RET inserts a newline when no completion candidate is selected, and selects the candidate when one is selected.
+[[https://github.com/minad/consult#use-package-example][Consult README の use-package 設定例]]に沿って、GNU ELPA から導入します。
+既存の Fido による候補表示と Nucleo による照合を利用します。
+キー割り当てからコマンドを遅延読み込みし、レジスタと xref の連携は
+=:init= で起動時から有効にします。
+
+** キー割り当て
+
+README の設定例と同じキーを使用します。主な操作は次のとおりです。
+
+- =C-c M-x=: 現在のモードのコマンド、=C-c h=: 履歴、=C-c k=: キーボードマクロを選択します。
+- =C-c m=: man ページ、=C-c i=: Info マニュアルを検索します。
+- =C-x b=: バッファ・最近使ったファイル・ブックマークから選択します。
+  =C-x 4 b= / =C-x 5 b= / =C-x t b= は別ウィンドウ・フレーム・タブで開きます。
+- =C-x r b=: ブックマーク、=C-x p b=: プロジェクト内のバッファ、
+  =C-x M-:=: 実行済みの複合コマンドを選択します。
+- =M-#= / =M-'= / =C-M-#=: レジスタの読み込み・保存・選択を行います。
+- =M-y=: キルリングから選択します。直前の操作が yank の場合はその内容を置き換えます。
+- =M-g g= / =M-g M-g=: 行番号、=M-g i= / =M-g I=: 現在／複数バッファの Imenu へ移動します。
+- =M-g e= / =M-g r= / =M-g f=: コンパイルエラー・Grep の一致・Flymake 診断へ移動します。
+- =M-g o= / =M-g m= / =M-g k=: アウトライン・マーク・グローバルマークへ移動します。
+- =M-s d= / =M-s c=: find / locate でファイルを探します。
+- =M-s g= / =M-s G= / =M-s r=: grep / git grep / ripgrep で
+  プロジェクト内（プロジェクト外では現在のディレクトリ）を検索します。
+- =M-s l= / =M-s L=: 現在／複数バッファの行を検索します。
+- =M-s k= / =M-s u=: 一致する行だけを残す／一時的に表示します。
+  =M-s k= はバッファの内容を変更します。
+- =M-s e=: Isearch の履歴を選択します。Isearch 中は =M-e= からも使え、
+  =M-s l= / =M-s L= で検索文字列を引き継いで行検索へ移れます。
+- ミニバッファ内の =M-s= / =M-r=: 入力履歴を選択します。
+
+** プレビューと候補の絞り込み
+
+レジスタのプレビューを Consult の表示へ置き換え、0.5 秒後に表示します。
+xref による参照・定義の候補も Consult で選択します。
+テーマは 0.2 秒、ファイルを読み込む検索やブックマークなどは 0.4 秒待って
+プレビューし、バッファ内の行検索などは即座にプレビューします。
+=C-g= で選択を取り消せます。
+
+=<= に続けてカテゴリのキーを押すと候補を絞り込めます。
+=consult-buffer= では =b SPC= でバッファ、=f SPC= で最近使ったファイルに
+絞り込むこともできます。絞り込みキーの候補は既存の which-key で確認できます。
+
+** 外部コマンドと検索式
+
+=M-s r= は =rg=、=M-s d= は =find=、=M-s c= は =locate= と検索用データベース、
+=C-c m= は =man= の外部コマンドを使用します。
+grep 系コマンドでは =#検索式#絞り込み= の前半を外部コマンドへ渡し、
+後半を Nucleo で照合します。日本語の Migemo 照合はこの後半や
+=consult-line= などの Emacs 内の候補に対して働きます。
 
 #+begin_src emacs-lisp
-  (with-eval-after-load 'corfu
-    (defvar corfu--index)
-
-    (let ((insert-or-return
-           `(menu-item "" nil
-                       :filter
-                       ,(lambda (&optional _)
-                          (when (>= corfu--index 0)
-                            #'corfu-insert))))
-          (reset-or-backspace
-           `(menu-item "" nil
-                       :filter
-                       ,(lambda (&optional _)
-                          (when (>= corfu--index 0)
-                            #'corfu-reset)))))
-
-      (dolist (key '("RET" "<return>"))
-        (keymap-set corfu-map key insert-or-return))
-
-      (dolist (key '("DEL" "<backspace>"))
-        (keymap-set corfu-map key reset-or-backspace))))
-#+end_src
-
-*** [[https://github.com/minad/corfu/wiki#combined-sorting][Combined sorting]]
-
-#+begin_src emacs-lisp
-  (defun my-corfu-combined-sort (candidates)
-    "Sort CANDIDATES using both display-sort-function and corfu-sort-function."
-    (let ((candidates
-           (let ((display-sort-func (corfu--metadata-get 'display-sort-function)))
-             (if display-sort-func
-                 (funcall display-sort-func candidates)
-               candidates))))
-      (if corfu-sort-function
-          (funcall corfu-sort-function candidates)
-        candidates)))
-
-  (setq corfu-sort-override-function #'my-corfu-combined-sort)
-#+end_src
-
-** flex-x
-
-#+begin_src emacs-lisp
-  (use-package flex-x
-    :vc ( :url "https://github.com/kn66/flex-x"
-          :rev :newest)
-    :config
-    (add-hook 'icomplete-minibuffer-setup-hook
-              (lambda () (setq-local completion-styles '(flex-x basic))))
-
-    (setopt completion-styles '(flex-x basic))
-
-    (with-eval-after-load 'migemo
-      (setopt flex-x-extra-pattern-function 'migemo-get-pattern))
-
-    (with-eval-after-load 'gnus
-      (setopt gnus-completion-styles '(flex-x basic))))
-#+end_src
-
-** AI (Artificial Intelligence)
-
-*** [[https://github.com/karthink/gptel][gptel]] (LLM Frontend)
-
-This is a general-purpose interface for using large language models (LLMs) from Emacs.
-It supports various backends, including OpenAI GPT models, Google Gemini models, and locally running models.
-Here, the configuration example uses Gemini models through GitHub Copilot credentials.
-
-#+begin_src emacs-lisp :tangle no
-  (use-package gptel
-    :defer t
-    :config
-    (setopt gptel-model 'gpt-4.1 ;; Specify the LLM model to use.
-            ;; Use GitHub Copilot credentials as the gptel backend.
-            gptel-backend (gptel-make-gh-copilot "Copilot")
-            gptel-default-mode 'org-mode
-            gptel-curl-file-size-threshold 0)
-
-    (require 'gptel-integrations))
-#+end_src
-
-*** [[https://github.com/copilot-emacs/copilot.el][copilot.el]]
-
-GitHub Copilot is an AI-powered code completion and generation service.
-To use Copilot from Emacs, use the ~copilot.el~ package. The following is a basic configuration example.
-
-#+begin_src emacs-lisp :tangle no
-  (defun my/copilot-enable-in-file-text-buffer ()
-    "Enable Copilot only in text buffers that visit a file."
-    (when buffer-file-name
-      (copilot-mode 1)))
-
-  (use-package copilot
-    :vc ( :url "https://github.com/copilot-emacs/copilot.el"
-          :rev :newest
-          :branch "main")
-    :bind ( :map copilot-completion-map
-            ("TAB" . nil)
-            ("<tab>" . nil)
-            ("M-RET" . copilot-accept-completion))
-    :hook ((prog-mode . copilot-mode)
-           (text-mode . my/copilot-enable-in-file-text-buffer)
-           (conf-mode . copilot-mode)))
-
-  (defun my/org-capture-place-template-with-copilot (original &rest args)
-    "Suspend Copilot while Org inserts a capture template."
-    (let* ((target (org-capture-get :buffer))
-           (copilot-was-enabled
-            (and (buffer-live-p target)
-                 (with-current-buffer target
-                   (bound-and-true-p copilot-mode)))))
-      (org-capture-put :my/copilot-target target
-                       :my/copilot-was-enabled copilot-was-enabled)
-      (when copilot-was-enabled
-        (with-current-buffer target
-          (copilot-mode -1)))
-      (condition-case err
-          (prog1 (apply original args)
-            ;; Template insertion is complete here, so Copilot can safely
-            ;; track changes made while editing the capture entry.
-            (when copilot-was-enabled
-              (copilot-mode 1)))
-        ((error quit)
-         (when (and copilot-was-enabled
-                    (buffer-live-p target))
-           (with-current-buffer target
-             (copilot-mode 1)))
-         (signal (car err) (cdr err))))))
-
-  (defun my/org-capture-disable-copilot-before-finalize ()
-    "Disable Copilot before Org finalizes or aborts a capture."
-    (when (bound-and-true-p copilot-mode)
-      (copilot-mode -1)))
-
-  (defun my/org-capture-restore-copilot ()
-    "Restore Copilot in the capture target buffer."
-    (let ((target (org-capture-get :my/copilot-target))
-          (was-enabled (org-capture-get :my/copilot-was-enabled)))
-      (when (and was-enabled
-                 (buffer-live-p target))
-        (with-current-buffer target
-          (copilot-mode 1)))))
-
-  (with-eval-after-load 'org-capture
-    (unless (advice-member-p
-             #'my/org-capture-place-template-with-copilot
-             'org-capture-place-template)
-      (advice-add
-       'org-capture-place-template
-       :around
-       #'my/org-capture-place-template-with-copilot))
-    (add-hook 'org-capture-prepare-finalize-hook
-              #'my/org-capture-disable-copilot-before-finalize)
-    (add-hook 'org-capture-after-finalize-hook
-              #'my/org-capture-restore-copilot))
-#+end_src
-
-** [[https://github.com/minad/consult][consult]] (Multi-purpose Search and Narrowing Commands)
-
-Enhances standard commands such as ~find-file~, ~switch-to-buffer~, and ~grep~,
-and provides advanced search and narrowing features in cooperation with completion UIs such as Vertico and Selectrum.
-
-#+begin_src emacs-lisp
-  ;; Example configuration for Consult
   (use-package consult
-    ;; Replace bindings. Lazily loaded by `use-package'.
-    :bind (;; C-c bindings in `mode-specific-map'
+    :ensure t
+    :pin gnu
+    :bind (;; Mode commands, history, and help
            ("C-c M-x" . consult-mode-command)
            ("C-c h" . consult-history)
            ("C-c k" . consult-kmacro)
            ("C-c m" . consult-man)
            ("C-c i" . consult-info)
            ([remap Info-search] . consult-info)
-           ;; C-x bindings in `ctl-x-map'
-           ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
-           ("C-x b" . consult-buffer)                ;; orig. switch-to-buffer
-           ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
-           ("C-x 5 b" . consult-buffer-other-frame)  ;; orig. switch-to-buffer-other-frame
-           ("C-x t b" . consult-buffer-other-tab)    ;; orig. switch-to-buffer-other-tab
-           ("C-x r b" . consult-bookmark)            ;; orig. bookmark-jump
-           ("C-x p b" . consult-project-buffer)      ;; orig. project-switch-to-buffer
-           ;; Custom M-# bindings for fast register access
+           ;; Buffers, bookmarks, and projects
+           ("C-x M-:" . consult-complex-command)
+           ("C-x b" . consult-buffer)
+           ("C-x 4 b" . consult-buffer-other-window)
+           ("C-x 5 b" . consult-buffer-other-frame)
+           ("C-x t b" . consult-buffer-other-tab)
+           ("C-x r b" . consult-bookmark)
+           ("C-x p b" . consult-project-buffer)
+           ;; Registers and kill ring
            ("M-#" . consult-register-load)
-           ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
+           ("M-'" . consult-register-store)
            ("C-M-#" . consult-register)
-           ;; Other custom bindings
-           ("M-y" . consult-yank-pop)                ;; orig. yank-pop
-           ;; M-g bindings in `goto-map'
+           ("M-y" . consult-yank-pop)
+           ;; Navigation
            ("M-g e" . consult-compile-error)
            ("M-g r" . consult-grep-match)
-           ("M-g f" . consult-flymake)               ;; Alternative: consult-flycheck
-           ("M-g g" . consult-goto-line)             ;; orig. goto-line
-           ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
-           ("M-g o" . consult-outline)               ;; Alternative: consult-org-heading
+           ("M-g f" . consult-flymake)
+           ("M-g g" . consult-goto-line)
+           ("M-g M-g" . consult-goto-line)
+           ("M-g o" . consult-outline)
            ("M-g m" . consult-mark)
            ("M-g k" . consult-global-mark)
            ("M-g i" . consult-imenu)
            ("M-g I" . consult-imenu-multi)
-           ;; M-s bindings in `search-map'
-           ("M-s d" . consult-find)                  ;; Alternative: consult-fd
+           ;; Search
+           ("M-s d" . consult-find)
            ("M-s c" . consult-locate)
            ("M-s g" . consult-grep)
            ("M-s G" . consult-git-grep)
@@ -1069,719 +849,258 @@ and provides advanced search and narrowing features in cooperation with completi
            ;; Isearch integration
            ("M-s e" . consult-isearch-history)
            :map isearch-mode-map
-           ("M-e" . consult-isearch-history)         ;; orig. isearch-edit-string
-           ("M-s e" . consult-isearch-history)       ;; orig. isearch-edit-string
-           ("M-s l" . consult-line)                  ;; needed by consult-line to detect isearch
-           ("M-s L" . consult-line-multi)            ;; needed by consult-line to detect isearch
+           ("M-e" . consult-isearch-history)
+           ("M-s e" . consult-isearch-history)
+           ("M-s l" . consult-line)
+           ("M-s L" . consult-line-multi)
            ;; Minibuffer history
            :map minibuffer-local-map
-           ("M-s" . consult-history)                 ;; orig. next-matching-history-element
-           ("M-r" . consult-history))                ;; orig. previous-matching-history-element
-
-    ;; The :init configuration is always executed (Not lazy)
+           ("M-s" . consult-history)
+           ("M-r" . consult-history))
     :init
-
-    ;; Tweak the register preview for `consult-register-load',
-    ;; `consult-register-store' and the built-in commands.  This improves the
-    ;; register formatting, adds thin separator lines, register sorting and hides
-    ;; the window mode line.
     (advice-add #'register-preview :override #'consult-register-window)
-    (setq register-preview-delay 0.5)
-
-    ;; Use Consult to select xref locations with preview
-    (setq xref-show-xrefs-function #'consult-xref
+    (setq register-preview-delay 0.5
+          xref-show-xrefs-function #'consult-xref
           xref-show-definitions-function #'consult-xref)
-
-    ;; Configure other variables and modes in the :config section,
-    ;; after lazily loading the package.
     :config
-
-    ;; Optionally configure preview. The default value
-    ;; is 'any, such that any key triggers the preview.
-    ;; (setq consult-preview-key 'any)
-    ;; (setq consult-preview-key "M-.")
-    ;; (setq consult-preview-key '("S-<down>" "S-<up>"))
-    ;; For some commands and buffer sources it is useful to configure the
-    ;; :preview-key on a per-command basis using the `consult-customize' macro.
     (consult-customize
      consult-theme :preview-key '(:debounce 0.2 any)
      consult-ripgrep consult-git-grep consult-grep consult-man
      consult-bookmark consult-recent-file consult-xref
      consult-source-bookmark consult-source-file-register
      consult-source-recent-file consult-source-project-recent-file
-     ;; :preview-key "M-."
      :preview-key '(:debounce 0.4 any))
-
-    ;; Optionally configure the narrowing key.
-    ;; Both < and C-+ work reasonably well.
-    (setq consult-narrow-key "<") ;; "C-+"
-
-    ;; Optionally make narrowing help available in the minibuffer.
-    ;; You may want to use `embark-prefix-help-command' or which-key instead.
-    ;; (keymap-set consult-narrow-map (concat consult-narrow-key " ?") #'consult-narrow-help)
-    )
+    (setq consult-narrow-key "<"))
 #+end_src
 
-*** Commands for Searching Only the Current Directory with grep
+* カレントディレクトリの検索と SQL 用の一覧変換
 
-These custom commands run ~consult-ripgrep~ and ~consult-grep~ only against the current directory (~default-directory~), not the project root.
-They are useful when you want to search only under the directory of the currently open file.
+バックアップにあった小さなコマンドを =lisp/my-editing-commands.el= にまとめます。
+=M-s R= で現在のディレクトリ以下を ripgrep、=M-s M-g= で grep 検索します。
+プロジェクト全体を検索する既存の =M-s r= / =M-s g= と使い分けられます。
+追加のパッケージは不要で、検索には既存の Consult と外部の =rg= / =grep= を使います。
+
+行ごとの値を選択して =M-x my-replace-region-with-in-clause= を実行すると、
+=IN ('A', 'B')= の形に変換します。空行と重複を除き、引用符は SQL 用にエスケープします。
+変換は通常の Undo で一度に戻せます。値をクエリへ手動で貼り付ける作業用です。
 
 #+begin_src emacs-lisp
-  ;; Run consult-ripgrep only against the current directory.
-  (defun consult-ripgrep-current-directory ()
-    (interactive)
-    (consult-ripgrep default-directory))
-
-  ;; Run consult-grep only against the current directory.
-  (defun consult-grep-current-directory ()
-    (interactive)
-    (consult-grep default-directory))
-
-  ;; M-s R runs ripgrep in the current directory.
-  (define-key search-map (kbd "R") #'consult-ripgrep-current-directory)
-  ;; M-s M-g runs grep in the current directory; the original M-s g searches the whole project.
-  (define-key search-map (kbd "M-g") #'consult-grep-current-directory)
+  (use-package my-editing-commands
+    :ensure nil
+    :load-path "lisp"
+    :commands my-replace-region-with-in-clause
+    :bind (("M-s R" . my-consult-ripgrep-current-directory)
+           ("M-s M-g" . my-consult-grep-current-directory)))
 #+end_src
 
-*** Command for ripgrep with a Specified Encoding
+* Marginalia による補完候補の注釈
 
-~ripgrep~ can specify the encoding of target files with ~--encoding~.
-When searching Windows-originated files that are not UTF-8, select Shift-JIS/CP932 before searching.
-
-#+begin_src emacs-lisp
-  (defvar my/consult-ripgrep-encoding-alist
-    '(("UTF-8" . "utf-8")
-      ("CP932 / Shift-JIS" . "shift_jis")
-      ("EUC-JP" . "euc-jp")
-      ("UTF-16LE" . "utf-16le")
-      ("UTF-16BE" . "utf-16be"))
-    "Encoding candidates used by `my/consult-ripgrep-with-encoding'.")
-
-  (defun my/consult-ripgrep--read-encoding ()
-    "Read a ripgrep encoding name from `my/consult-ripgrep-encoding-alist'."
-    (cdr (assoc (completing-read "Encoding: "
-                                 my/consult-ripgrep-encoding-alist
-                                 nil t nil nil "CP932 / Shift-JIS")
-                my/consult-ripgrep-encoding-alist)))
-
-  (defun my/consult-ripgrep-with-encoding (&optional dir initial)
-    "Search with `consult-ripgrep' after selecting a file encoding."
-    (interactive "P")
-    (let ((consult-ripgrep-args
-           (append (consult--build-args consult-ripgrep-args)
-                   (list "--encoding" (my/consult-ripgrep--read-encoding)))))
-      (consult-ripgrep dir initial)))
-
-  (defun my/consult-ripgrep-current-directory-with-encoding ()
-    "Search current directory with `consult-ripgrep' after selecting a file encoding."
-    (interactive)
-    (my/consult-ripgrep-with-encoding default-directory))
-#+end_src
-
-*** [[https://github.com/karthink/consult-dir][consult-dir]]
-
-This package helps with directory navigation and management.
+[[https://github.com/minad/marginalia#configuration][Marginalia README]] に沿って GNU ELPA から導入し、
+ファイル情報やコマンドの説明などを補完候補に表示します。
+既存の Fido と組み合わせて使えます。ミニバッファの =M-A= で
+注釈の詳細度を切り替えたり、注釈を非表示にしたりできます。
 
 #+begin_src emacs-lisp
-  (use-package consult-dir
-    :bind (("C-x C-d" . consult-dir)
-           :map minibuffer-local-completion-map
-           ("C-x C-d" . consult-dir)
-           ("C-x C-j" . consult-dir-jump-file)))
-#+end_src
-
-** [[https://github.com/minad/marginalia][marginalia]] (Add Annotations to Completion Candidates)
-
-Adds detailed annotations to minibuffer completion candidates, such as file types, dates, Git information, and function argument lists.
-This makes completion candidates easier to choose.
-
-#+begin_src emacs-lisp
-  ;; Enable rich annotations using the Marginalia package
   (use-package marginalia
-    ;; Bind `marginalia-cycle' locally in the minibuffer.  To make the binding
-    ;; available in the *Completions* buffer, add it to the
-    ;; `completion-list-mode-map'.
-    :bind ( :map minibuffer-local-map
-            ("M-A" . marginalia-cycle))
-
-    ;; The :init section is always executed.
+    :ensure t
+    :pin gnu
+    :bind (:map minibuffer-local-map
+                ("M-A" . marginalia-cycle))
     :init
-
-    ;; Marginalia must be activated in the :init section of use-package such that
-    ;; the mode gets enabled right away. Note that this forces loading the
-    ;; package.
-    (marginalia-mode))
+    (marginalia-mode +1))
 #+end_src
 
-** [[https://github.com/oantolin/embark][embark]] (Run Contextual Actions)
+* Embark による候補やポイント上の操作
 
-This package makes it possible to run various context-dependent actions, such as opening, copying, or looking up definitions,
-against completion candidates from Vertico or Consult and various targets in buffers, such as file names, URLs, and symbols.
+[[https://github.com/oantolin/embark#installation][Embark README]] に沿って GNU ELPA から導入します。
+=C-.= でミニバッファの選択候補やポイント上の対象に応じた操作を選び、
+=C-;= で対象の既定の操作を実行します。=C-h B= はキー割り当ての一覧です。
+=C-.= の後に =S= で候補を一覧バッファに集め、=E= で候補に適したモードへ
+書き出せます。Fido の候補は追加設定なしで対象になります。
+
+プレフィックスキーの後の =C-h= は補完付きのキー一覧を開きます。
+既存の which-key は、プレフィックス入力後に待ったときの案内を引き続き表示します。
+後述の which-key 設定では、=C-h= を Embark に任せるようにします。
 
 #+begin_src emacs-lisp
   (use-package embark
-    :bind
-    (("C-." . embark-act)         ;; pick some comfortable binding
-     ("C-;" . embark-dwim)        ;; good alternative: M-.
-     ("C-h B" . embark-bindings)) ;; alternative for `describe-bindings'
-
+    :ensure t
+    :pin gnu
+    :commands (embark-prefix-help-command)
+    :bind (("C-." . embark-act)
+           ("C-;" . embark-dwim)
+           ("C-h B" . embark-bindings))
     :init
-
-    ;; Optionally replace the key help with a completing-read interface
-    (setq prefix-help-command #'embark-prefix-help-command)
-
-    ;; Show the Embark target at point via Eldoc. You may adjust the
-    ;; Eldoc strategy, if you want to see the documentation from
-    ;; multiple providers. Beware that using this can be a little
-    ;; jarring since the message shown in the minibuffer can be more
-    ;; than one line, causing the modeline to move up and down:
-
-    ;; (add-hook 'eldoc-documentation-functions #'embark-eldoc-first-target)
-    ;; (setq eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
-
-    ;; Add Embark to the mouse context menu. Also enable `context-menu-mode'.
-    ;; (context-menu-mode 1)
-    ;; (add-hook 'context-menu-functions #'embark-context-menu 100)
-
-    :config
-
-    ;; Hide the mode line of the Embark live/completions buffers
-    (add-to-list 'display-buffer-alist
-                 '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
-                   nil
-                   (window-parameters (mode-line-format . none)))))
+    (setq prefix-help-command #'embark-prefix-help-command))
 #+end_src
 
-*** embark-consult
-
-Integrates Embark and Consult so Embark actions can be run from Consult search results and similar sources.
-For example, actions such as closing or killing a buffer selected with ~consult-buffer~ can be run through Embark.
+Embark と Consult を連携させる =embark-consult= も GNU ELPA から導入します。
+Consult の検索結果を書き出せるようになり、候補一覧では対応する候補を
+ポイントの移動に合わせてプレビューします。
 
 #+begin_src emacs-lisp
-  (use-package embark-consult)
+  (use-package embark-consult
+    :ensure t
+    :pin gnu
+    :after (embark consult)
+    :hook (embark-collect-mode . consult-preview-at-point-mode))
 #+end_src
 
-** [[https://github.com/minad/tempel][tempel]] (Lightweight Snippet Engine)
+* 編集履歴を Vundo でたどる
 
-This is a lightweight template/snippet expansion package for Emacs.
-A similar package is [[https://github.com/joaotavora/yasnippet][yasnippet]], but Tempel aims for a simpler implementation.
-
-#+begin_src emacs-lisp
-  (use-package tempel
-    :bind (("M-+" . tempel-complete) ;; Complete and expand snippet candidates at point; also an alternative to `tempel-expand`.
-           ("M-*" . tempel-insert))) ;; Insert the specified snippet.
-#+end_src
-
-*** [[https://github.com/Crandel/tempel-collection][tempel-collection]]
-
-This package collects snippet definitions for Tempel.
-It includes snippets for various programming languages and modes.
-
-#+begin_src emacs-lisp
-  (use-package tempel-collection
-    :after tempel)
-#+end_src
-
-** Git
-
-Package settings for working comfortably with Git from Emacs.
-
-*** [[https://magit.vc/][magit]]
-
-This package provides a powerful Git client inside Emacs.
-Most Git operations, such as commits, branch operations, and diff inspection, can be completed inside Emacs.
-
-#+begin_src emacs-lisp
-  (use-package magit
-    :defer t
-    :init
-    (with-eval-after-load 'project
-      (require 'magit-extras))) ; Load additional Magit features such as magit-plus.
-#+end_src
-
-*** [[https://github.com/dgutov/diff-hl][diff-hl]]
-
-Visually display uncommitted changes in the Git repository, such as added, modified, and deleted lines, in the window fringe.
-
-#+begin_src emacs-lisp
-  (use-package diff-hl
-    :defer 2
-    ;; Also update diff-hl before and after Magit buffer refreshes.
-    :hook ((magit-pre-refresh . diff-hl-magit-pre-refresh)
-           (magit-post-refresh . diff-hl-magit-post-refresh))
-    :config
-    (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
-    (global-diff-hl-mode)                 ; Enable diff-hl globally.
-    (global-diff-hl-show-hunk-mouse-mode) ; Show change hunks on mouse hover.
-    (diff-hl-margin-mode))                ; Show diffs in the margin instead of the fringe.
-#+end_src
-
-*** [[https://github.com/pkryger/difftastic.el][difftastic.el]]
-
-Enables [[https://github.com/wilfred/difftastic][difftastic]] in Emacs.
-It can be used as a regular command and is also integrated with Magit.
-
-#+begin_src emacs-lisp
-  (use-package difftastic
-    :after magit
-    :config
-    (difftastic-bindings-mode))
-#+end_src
-
-** [[https://github.com/justbur/emacs-which-key][which-key]] (Keybinding Guide)
-
-Displays candidate keybindings after prefix keys, such as ~C-x~, in a popup and guides key operations.
-It helps with remembering complex keybindings.
-
-#+begin_src emacs-lisp
-  (use-package which-key
-    :defer 1
-    :config
-    (which-key-mode))
-#+end_src
-
-** undo (Undo-related Settings)
-
-I used to use undo-fu and undo-fu-repeat, but Emacs's built-in undo feature has improved,
-so I switched to the built-in undo implementation.
-
-*** [[https://github.com/casouri/vundo][vundo]] (Visualize Undo History)
-
-This package displays undo history visually as a tree and makes it easy to return to a specific edit state.
-A representative similar package is [[https://elpa.gnu.org/packages/undo-tree.html][undo-tree]], but vundo aims for a simpler implementation.
+GNU ELPA の Vundo は、現在のバッファの編集履歴を木として表示します。
+=C-x u= または =M-x vundo= で開き、=f= / =b= で前後、=n= / =p= で分岐を移動します。
+=RET= で選択した状態を確定し、=q= または =C-g= では変更を取り消して終了します。
+通常の =C-/= による undo もそのまま使えます。
 
 #+begin_src emacs-lisp
   (use-package vundo
-    :defer t)
+    :ensure t
+    :pin gnu
+    :bind ("C-x u" . vundo))
 #+end_src
 
-** [[https://github.com/purcell/emacs-reformatter][reformatter]] (Code Formatter Integration)
+* 変更箇所を diff-hl で表示する
 
-This package provides a unified interface for various code formatters, such as Prettier, Black, and gofmt.
-I previously used [[https://github.com/radian-software/apheleia][apheleia]], but in large projects on Windows with many changed files,
-asynchronous process failures sometimes occurred, so I switched to this simpler package.
+GNU ELPA の diff-hl は、バージョン管理下のファイルで保存済みの変更を表示します。
+GUI ではフリンジを使用し、端末では既定のマージンへのフォールバックを使用します。
+Dired にもファイルの変更状態を表示し、Magit の更新後に表示を更新します。
+変更箇所の移動には =C-x v [= と =C-x v ]= を使えます。
 
 #+begin_src emacs-lisp
-  (use-package reformatter
-    :hook (((typescript-ts-mode
-             tsx-ts-mode) . prettier-format-on-save-mode)
-           ((csharp-mode
-             csharp-ts-mode) . csharpier-format-on-save-mode))
+  (use-package diff-hl
+    :ensure t
+    :pin gnu
+    :demand t
+    :hook
+    (dired-mode . diff-hl-dired-mode)
+    (magit-post-refresh . diff-hl-magit-post-refresh)
     :config
-    (reformatter-define prettier-format
-      :program "npx"
-      :args `("prettier" "--stdin-filepath" ,buffer-file-name)
-      :lighter " PrettierFmt")
-
-    (reformatter-define csharpier-format
-      :program "csharpier"
-      :args '("format" "--write-stdout")
-      :lighter " CSharpierFmt"))
+    (global-diff-hl-mode 1))
 #+end_src
 
-*** [[https://github.com/purcell/sqlformat][sqlformat]]
+* ファイルの自動再読み込み
 
-This is a SQL formatting package that uses reformatter.
-
-#+begin_src emacs-lisp
-  (use-package sqlformat
-    :defer t
-    :init
-    (setopt sqlformat-command 'sql-formatter
-            sqlformat-args '("-l" "tsql")))
-#+end_src
-
-** [[https://github.com/casouri/expreg][expreg]] (Incrementally Expand the Selection)
-
-This package incrementally expands the selection from point by semantic units such as words, parenthesized expressions, and S-expressions.
-A similar package is [[https://github.com/magnars/expand-region.el][expand-region]], but expreg has a simpler implementation.
+ディスク上で変更されたファイルなどを自動で再読み込みします。
+=global-auto-revert-non-file-buffers= で、Dired などの対応バッファも対象にします。
 
 #+begin_src emacs-lisp
-  (use-package expreg
-    :defer t
-    :bind ("C-=" . expreg-expand))
-#+end_src
-
-** [[https://github.com/AmaiKinono/puni][puni]] (Structural Editing Utilities)
-
-This package provides utilities for manipulating paired structures such as parentheses, quotes, and tags.
-It makes it easy to select, delete, swap, and wrap pairs.
-It is also introduced in [[https://qiita.com/akirak/items/11dafdf89e32d34f3fc9#puni][this Qiita article]].
-A similar package is [[https://github.com/Fuco1/smartparens][smartparens]].
-
-#+begin_src emacs-lisp
-  (use-package puni
-    :defer 1
+  (use-package autorevert
+    :ensure nil
+    :demand t
+    :custom
+    (global-auto-revert-non-file-buffers t)
     :config
-    (puni-global-mode))
+    (global-auto-revert-mode +1))
 #+end_src
 
-** treesit (Tree-sitter-related Settings)
+* 長い行への対策
 
-Settings for using Tree-sitter, an incremental parsing library, in Emacs.
-It enables more accurate syntax highlighting, indentation, code navigation, and related features.
-
-*** [[https://github.com/kiennq/treesit-langs][treesit-langs]] (Tree-sitter Grammar Management)
-
-This package makes it easy to download and manage Tree-sitter grammars, or parsers, for various programming languages.
-Since Tree-sitter became standard in Emacs 29 and later, it is maintained in a form close to the official support.
-The latest grammar bundle version can be checked on [[https://github.com/emacs-tree-sitter/tree-sitter-langs/tags][this page]].
+極端に長い行を含むファイルで、編集の負荷を抑えます。
 
 #+begin_src emacs-lisp
-  (use-package treesit-langs
-    :vc (treesit-langs :url "https://github.com/emacs-tree-sitter/treesit-langs" :rev :newest)
-    :init
-    ;; Specify a working version if a version mismatch occurs on Emacs 30.
-    (when (version< emacs-version "31")
-      (setopt treesit-langs-bundle-version "0.12.300")))
-#+end_src
-
-*** [[https://github.com/renzmann/treesit-auto][treesit-auto]]
-
-This package automatically switches to Tree-sitter-enabled major modes.
-
-#+begin_src emacs-lisp
-  (use-package treesit-auto
+  (use-package so-long
+    :ensure nil
+    :demand t
     :config
-    (global-treesit-auto-mode))
+    (global-so-long-mode +1))
 #+end_src
 
-*** [[https://github.com/emacs-tree-sitter/treesit-fold][treesit-fold]]
+* 単語内の移動と編集
 
-This package implements code folding by using Tree-sitter parse information.
+camelCase などの語の境界を単語移動・編集で認識します。
 
 #+begin_src emacs-lisp
-  (use-package treesit-fold
-    :if (version< emacs-version "31")
-    :after treesit
+  (use-package subword
+    :ensure nil
+    :demand t
     :config
-    (global-treesit-fold-mode)
-    (global-treesit-fold-indicators-mode)
-
-    ;; Override the overlay creation function to avoid conflicts with Eglot and flymake.
-    (with-eval-after-load 'treesit-fold-indicators
-      (defun treesit-fold-indicators--create-overlay-at-point ()
-        "Create indicator overlay at current point."
-        (let* ((pos (line-beginning-position))
-               (ov (make-overlay pos (1+ pos)))
-               (window (selected-window)))
-          (overlay-put ov 'treesit-fold-indicators-window window)
-          (overlay-put ov 'window window)
-          ;; Set a keymap on the overlay so it takes priority.
-          (overlay-put ov 'keymap treesit-fold-indicators-mode-map)
-          ov))))
+    (global-subword-mode +1))
 #+end_src
 
-** [[https://github.com/akicho8/string-inflection][string-inflection]] (Word Case Conversion)
+* 最近開いたファイル
 
-Cycle the word at point through styles such as snake_case, camelCase, and UPPER_CASE.
-This is useful for quickly converting names to match programming language naming conventions.
-
-#+begin_src emacs-lisp
-  (use-package string-inflection
-    :defer t
-    :init
-    ;; Automatically switch conversion styles based on the major mode.
-    (defun my-string-inflection-cycle-auto ()
-      "Cycle word case styles according to the major mode."
-      (interactive)
-      (cond
-       ;; Emacs Lisp mode.
-       ((eq major-mode 'emacs-lisp-mode)
-        (string-inflection-all-cycle)) ; Cycle through all styles.
-       ;; Python mode.
-       ((eq major-mode 'python-mode)
-        (string-inflection-python-style-cycle)) ; Python styles such as snake_case and CamelCase.
-       ;; Java mode.
-       ((eq major-mode 'java-mode)
-        (string-inflection-java-style-cycle)) ; Java styles such as camelCase and PascalCase.
-       ;; Elixir mode.
-       ((eq major-mode 'elixir-mode)
-        (string-inflection-elixir-style-cycle)) ; Elixir styles.
-       (t
-        ;; Default, Ruby style.
-        (string-inflection-ruby-style-cycle)))))
-#+end_src
-
-** [[https://github.com/emacs-jp/migemo][migemo]] (Japanese Search by Romaji)
-
-This package enables Japanese incremental search using romaji input.
-A separate Migemo dictionary engine such as ~cmigemo~ is required.
-On Windows, this assumes ~cmigemo~ is installed through Scoop.
+最近開いたファイルの履歴を記録します。
+=recentf-max-saved-items= で最大200件を保存します。
 
 #+begin_src emacs-lisp
-  (use-package migemo
-    :if (executable-find "cmigemo")
-    :defer 3
-    :init
-    ;; Configure the Migemo command; use cmigemo by default.
-    (setopt migemo-command "cmigemo")
-    (setopt migemo-options '("-q" "--emacs")) ; Options passed to cmigemo.
-
-    ;; Configure the Migemo dictionary path; adjust this for the environment.
-    (let ((dictionary
-           (cond
-            (IS-WINDOWS
-             ;; Change the path to match the environment.
-             ;; Example for installing cmigemo with Scoop:
-             ;; "C:/Users/<USERNAME>/scoop/apps/cmigemo/current/cmigemo-mingw64/share/migemo/utf-8/migemo-dict"
-             (expand-file-name "scoop/apps/cmigemo/current/cmigemo-mingw64/share/migemo/utf-8/migemo-dict"
-                               (getenv "USERPROFILE")))
-            (IS-LINUX
-             "/usr/share/cmigemo/utf-8/migemo-dict"))))
-      (when dictionary
-        (setopt migemo-dictionary dictionary)))
-
-    (when (and migemo-dictionary
-               (not (file-readable-p migemo-dictionary)))
-      (setopt migemo-dictionary
-              nil))
-
-    (setopt migemo-user-dictionary nil)   ; Do not use a user dictionary.
-    (setopt migemo-regex-dictionary nil)  ; Do not use a regular expression dictionary.
-    (setopt migemo-coding-system 'utf-8-unix) ; Dictionary encoding.
-
+  (use-package recentf
+    :ensure nil
+    :demand t
+    :custom
+    (recentf-max-saved-items 200)
     :config
-    (if migemo-dictionary
-        (migemo-init) ; Initialize Migemo.
-      (message "Skip migemo-init: Migemo dictionary is not readable.")))
+    (recentf-mode +1))
 #+end_src
 
-** [[https://github.com/editorconfig/editorconfig-emacs][editorconfig]] (.editorconfig Support)
+* コマンドの繰り返し
 
-EditorConfig supports files (~.editorconfig~) for configuring code styles that differ by project.
-
-#+begin_src emacs-lisp
-  (use-package editorconfig
-    :hook ((prog-mode
-            conf-mode
-            text-mode) . editorconfig-mode))
-#+end_src
-
-** [[https://github.com/mhayashi1120/Emacs-wgrep][emacs-wgrep]] (Edit Grep Results Directly)
-
-This package makes it possible to edit search results from tools such as ~grep~ and ~rg~ directly.
-With this package, edits can be made directly in the search result buffer and applied back to the original files.
+対応するコマンドを、短いキー操作で続けて実行できるようにします。
 
 #+begin_src emacs-lisp
-  (use-package wgrep
-    :defer t)
-#+end_src
-
-** [[https://github.com/abo-abo/avy][avy]]
-
-This package jumps quickly to words and symbols away from point.
-
-#+begin_src emacs-lisp
-  (use-package avy
-    :bind ("C-:" . avy-goto-char))
-#+end_src
-
-** [[https://github.com/Malabarba/aggressive-indent-mode][aggressive-indent-mode]]
-
-This package automatically adjusts code indentation in real time.
-
-#+begin_src emacs-lisp
-  (use-package aggressive-indent
-    :hook (emacs-lisp-mode . aggressive-indent-mode))
-#+end_src
-
-** [[https://github.com/kn66/dired-clipboard.el/][direc-clipboard]]
-
-#+begin_src emacs-lisp
-  (use-package dired-clipboard
-    :vc ( :url "https://github.com/kn66/dired-clipboard.el"
-          :rev :newest)
-    ;; :load-path "~/.emacs.d/lisp/dired-clipboard.el/"
-    :hook (dired-mode . dired-clipboard-mode))
-#+end_src
-
-** eglot
-
-This section configures Emacs's built-in LSP client, ~eglot~, and helper packages around it.
-It covers language server installation, shared configuration, and snippet integration.
-
-*** [[https://github.com/kn66/eglot-multi-preset][eglot-multi-preset]]
-
-This package smoothly configures eglot with [[https://github.com/joaotavora/rassumfrassum][rass (rassumfrassum)]] and [[https://github.com/thefrontside/lspx][lspx]].
-
-#+begin_src emacs-lisp
-  (use-package eglot-multi-preset
-    :after eglot
-    :vc ( :url "https://github.com/kn66/eglot-multi-preset.git"
-          :rev :newest)
-    ;; :load-path "~/.emacs.d/lisp/eglot-multi-preset/"
-    :after eglot
+  (use-package repeat
+    :ensure nil
+    :demand t
     :config
-    (setopt eglot-multi-preset-executable-overrides
-            '(("rass" . "rass.exe")))
-    (eglot-multi-preset-mode 1))
+    (repeat-mode +1))
 #+end_src
 
-*** [[https://github.com/kn66/lsp-installer.el][lsp-installer]]
+* カーソル位置の復元
 
-This package installs language servers.
+ファイルを開き直すとき、前回のカーソル位置を復元します。
 
 #+begin_src emacs-lisp
-  (use-package lsp-installer
-    :after eglot
-    :vc ( :url "https://github.com/kn66/lsp-installer.el"
-          :rev :newest)
+  (use-package saveplace
+    :ensure nil
+    :demand t
     :config
-    (lsp-installer-setup))
+    (save-place-mode +1))
 #+end_src
 
-*** [[https://github.com/svaante/lsp-snippet][lsp-snippet]]
+* キー操作の候補表示
 
-This package makes snippet information obtained from LSP servers available through the Tempel snippet engine.
+キーの接頭辞を入力して待つと、続くキーの候補を表示します。
 
 #+begin_src emacs-lisp
-  (use-package lsp-snippet
-    :after (eglot tempel)
-    :vc ( :url "https://github.com/svaante/lsp-snippet"
-          :rev :newest)
+  (use-package which-key
+    :ensure nil
+    :demand t
+    :custom
+    (which-key-use-C-h-commands nil)
+    (which-key-show-early-on-C-h nil)
     :config
-    ;; Initialize lsp-snippet -> tempel in Eglot.
-    (lsp-snippet-tempel-eglot-init))
+    (which-key-mode +1))
 #+end_src
 
-** language (Programming Language Modes)
+* Emacs サーバー
 
-*** [[https://github.com/abrochard/mermaid-mode][mermaid-mode]]
-
-This major mode is for writing diagrams in Mermaid notation.
-It provides syntax highlighting and diagram generation through the Mermaid CLI.
-The scale is set to 2x for high-resolution diagram generation.
+対話的に起動したときだけ =server-mode= を有効にし、=emacsclient= から
+起動済みの Emacs へファイルを渡せるようにします。
+バッチ実行ではサーバーを起動しません。
 
 #+begin_src emacs-lisp
-  (use-package mermaid-mode
-    :defer t
+  (use-package server
+    :ensure nil
+    :if (not noninteractive)
+    :demand t
     :config
-    (setopt mermaid-flags "--scale 2"))
+    (server-mode +1))
 #+end_src
 
-*** web (Web Development)
+* Customize の保存値を読み込む
 
-**** [[https://github.com/smihica/emmet-mode][emmet-mode]] (Emmet Support)
-
-Enables Emmet, formerly Zen Coding, in Emacs to make writing HTML, CSS, and similar formats more efficient.
-It can quickly expand complex HTML/XML structures from short CSS-selector-like abbreviations.
+=custom-file= は先頭で =custom.el= に設定しています。
+手書きの設定を読み込んだ後で保存値を適用し、Customize からの変更を優先します。
+=custom.el= が未作成の環境でも起動できます。
 
 #+begin_src emacs-lisp
-  (use-package emmet-mode
-    :hook ((html-ts-mode
-            css-ts-mode) . emmet-mode))
+  (load custom-file 'noerror 'nomessage)
 #+end_src
 
-**** [[https://github.com/pimeys/emacs-prisma-mode][prisma-mode]] (Mode for Prisma Schema Files)
+* 生成ファイルの末尾
 
-This major mode supports editing schema files (~.prisma~) for the Prisma ORM tool.
-It provides syntax highlighting, indentation, formatting, and related features.
-
-#+begin_src emacs-lisp
-  (use-package prisma-mode
-    :defer t
-    :vc ( :url "https://github.com/pimeys/emacs-prisma-mode"
-          :rev :newest))
-#+end_src
-
-** [[https://github.com/kn66/pomo-cat.el][pomo-cat.el]]
-
-This is a custom package that displays a cat in the center of the screen when a Pomodoro timer reaches break time.
+Emacs Lisp ファイルの終端を示します。
 
 #+begin_src emacs-lisp
-  (use-package pomo-cat
-    :vc ( :url "https://github.com/kn66/pomo-cat.el"
-          :rev :newest)
-    ;; :load-path "~/.emacs.d/lisp/pomo-cat.el/"
-    :defer 5
-    :init
-    (setopt pomo-cat-use-dedicated-frame 'topmost
-            pomo-cat-dedicated-frame-position 'bottom-right)
-    :config
-    (pomo-cat-start))
-#+end_src
-
-** elisp-quality-ai
-
-#+begin_src emacs-lisp
-  (use-package elisp-quality-ai
-    :vc ( :url "https://github.com/kn66/elisp-quality-ai"
-          :rev :newest)
-    ;; :load-path "~/.emacs.d/lisp/elisp-quality-ai/"
-    :defer t
-    )
-#+end_src
-
-*** package-lint
-
-#+begin_src emacs-lisp
-  (use-package package-lint :defer t)
-#+end_src
-
-*** relint
-
-#+begin_src emacs-lisp
-  (use-package relint :defer t)
-#+end_src
-
-*** cognitive-complexity
-
-#+begin_src emacs-lisp
-  (use-package cognitive-complexity
-    :vc ( :url "https://github.com/emacs-vs/cognitive-complexity"
-          :rev :newest)
-    :defer t)
-#+end_src
-
-*** commonmark-gfm
-
-This package renders CommonMark and GitHub Flavored Markdown to HTML inside Emacs.
-
-#+begin_src emacs-lisp
-  (use-package commonmark-gfm
-    :vc ( :url "https://github.com/kn66/commonmark-gfm.el"
-          :rev :newest)
-    ;; :load-path "~/.emacs.d/lisp/commonmark-gfm.el/"
-    :defer t
-    :config
-    (setq markdown-command #'commonmark-gfm-markdown-command)
-    (setq markdown-command-needs-filename nil))
-#+end_src
-
-** Other Convenient Functions
-
-*** Convert Data Extracted from a Database into an IN Clause
-
-Read the selected text line by line, convert it to a SQL IN clause format, such as IN ('A', 'B', 'C'), and replace the selection.
-Duplicate lines are removed and single quotes are escaped. This is useful for formatting ID lists copied from a database into SQL queries.
-
-#+begin_src emacs-lisp
-  (defun my/replace-region-with-in-clause (start end)
-    "Convert the selected region from START to END into a SQL IN clause and replace the original selection."
-    (interactive "r") ; Callable when the region is active.
-    (let* ((region-content (buffer-substring-no-properties start end)) ; Get the selected text.
-           (records (split-string region-content "[\r\n]+" t "[[:space:]]+"))
-           (unique-records (delete-dups records))        ; Remove duplicates.
-           (quoted-records
-            (mapcar (lambda (record)
-                      (format "'%s'"
-                              (replace-regexp-in-string "'" "''" record t t)))
-                    unique-records)))
-      (unless unique-records
-        (user-error "No records found in region"))
-      (delete-region start end) ; Delete the original selection.
-      (insert (format "IN (%s)"
-                      (mapconcat 'identity quoted-records ", "))))) ; Insert the generated IN clause.
-#+end_src
-
-** footer
-
-#+begin_src emacs-lisp
-  (when (file-exists-p custom-file)
-    (load-file custom-file))
-
-  (provide 'init)
   ;;; init.el ends here
 #+end_src
