@@ -3,6 +3,7 @@
 auto-save-list/
 backups/
 bbdb
+benchmarks/
 custom.el
 early-init.el
 early-init.md
@@ -14,11 +15,13 @@ eshell/
 history
 init.el
 init.md
+kkcrc
 language-servers/
 lisp/
 lsp-installer-github-cache.eld
 lsp-proxy/
 mason/
+nucleo-completion/
 places
 places.eld
 projects
@@ -26,6 +29,7 @@ projects.eld
 recentf
 recentf.eld
 skk-get-jisyo/
+tests/*
 tmp/
 tramp
 transient/
