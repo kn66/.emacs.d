@@ -29,7 +29,8 @@ Emacs 30.2 と Emacs 31 の組み込み機能を中心に、補完・検索・�
 
 Emacs 30.2 / 31 に同梱されている =use-package= を読み込みます。
 外部パッケージは原則として GNU ELPA・NonGNU ELPA・MELPA から取得します。
-Magit は NonGNU ELPA、Puni・Nucleo・Emacs 31.1 以上の =tempel-collection= は MELPA、
+Magit・gptel・solarized-theme は NonGNU ELPA、Puni・Nucleo・Migemo・Copilot・consult-dir・
+Emacs 31.1 以上の =tempel-collection= は MELPA、
 それ以外は各宣言で GNU ELPA を指定します。
 アーカイブに未収録の =dired-clipboard= は公式リポジトリから取得します。
 =tempel-collection= は Emacs 31.1 以上では MELPA から導入します。
@@ -41,6 +42,15 @@ Magit は NonGNU ELPA、Puni・Nucleo・Emacs 31.1 以上の =tempel-collection=
 =:preface= で他の設定が参照する変数を先に定義し、=:init= で保存先を作成します。
 =:defer t= の機能は必要になるまで読み込みを遅らせ、
 起動時に有効にするモードには =:demand t= を指定します。
+
+Emacs 31.1 以降では =package-review-policy= を =t= にし、
+パッケージアーカイブからのインストール・更新前にレビューを行います。
+更新時の確認で =d= を押すと旧版との差分、=b= でソース、
+変更履歴がある場合は =c= でその内容を表示できます。
+=y= でインストールを進め、=n= でそのパッケージを中止します。
+新規インストールでは比較対象の旧版がないため、差分の選択肢は出ません。
+このレビューは =package-vc= による取得・更新には適用されません。
+Emacs 30.2 では設定項目がないため、有効化をスキップします。
 
 #+begin_src emacs-lisp
   ;;; init.el --- 個人用 Emacs 設定 -*- lexical-binding: t; -*-
@@ -54,7 +64,9 @@ Magit は NonGNU ELPA、Puni・Nucleo・Emacs 31.1 以上の =tempel-collection=
     :ensure nil
     :demand t
     :config
-    (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t))
+    (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+    (when (boundp 'package-review-policy)
+      (setopt package-review-policy t)))
 #+end_src
 
 * Emacs の基本設定
@@ -117,12 +129,23 @@ Magit は NonGNU ELPA、Puni・Nucleo・Emacs 31.1 以上の =tempel-collection=
 =column-number-mode= で列番号を表示し、
 =minibuffer-depth-indicate-mode= でミニバッファが入れ子になったときの深さを表示します。
 
+** カーソルの表示
+
+=cursor-type= を幅 3 ピクセルの縦線にし、=blink-cursor-mode= を無効にして点滅させません。
+テーマ読み込み後にカーソル色をマゼンタ（=#d33682=）に設定します。
+=global-hl-line-mode= でカーソルのある行を強調します。
+
 ** ファイル削除・改行・字下げ
 
 バックアップ設定から、=delete-by-moving-to-trash= と =require-final-newline= を取り入れます。
 ファイル削除時は利用できるシステムのゴミ箱へ移し、テキストの保存時は末尾に改行を補います。
 リモートファイルなどではゴミ箱の扱いが異なるため、削除時の確認に従ってください。
 既定の字下げは空白にし、Makefile などのモード指定や EditorConfig の指定を優先します。
+
+** 新規バッファの文字コード
+
+新しく作るバッファの保存時の文字コードは UTF-8 を既定にします。
+改行コードはここで固定せず、既存ファイルを開くときはその文字コードを判定します。
 
 ** 基本設定の宣言
 
@@ -156,10 +179,260 @@ Magit は NonGNU ELPA、Puni・Nucleo・Emacs 31.1 以上の =tempel-collection=
     (delete-by-moving-to-trash t)
     (require-final-newline t)
     :config
+    (setq-default buffer-file-coding-system 'utf-8)
     (setq-default indent-tabs-mode nil)
+    (setq-default cursor-type '(bar . 3))
     (column-number-mode +1)
-    (minibuffer-depth-indicate-mode +1))
+    (minibuffer-depth-indicate-mode +1)
+    (blink-cursor-mode -1)
+    (global-hl-line-mode +1))
 #+end_src
+
+* テーマ
+
+NonGNU ELPA の =solarized-theme= を導入し、起動時に =solarized-light= を適用します。
+
+#+begin_src emacs-lisp
+  (use-package solarized-theme
+    :ensure t
+    :pin nongnu
+    :demand t
+    :config
+    (load-theme 'solarized-light t)
+    (set-face-attribute 'cursor nil :background "#d33682"))
+#+end_src
+
+* フォント
+
+Windows と Fedora の GUI フレームでは共通のフォントを指定します。
+英数字・日本語とも、通常表示の =default= と等幅表示の =fixed-pitch= に
+=PlemolJP=、可変幅表示の =variable-pitch= に =IBM Plex Sans JP= を使います。
+=PlemolJP= は半角と全角の幅が 1:2 の通常版です。
+通常の編集は等幅で表示し、可変幅表示を使うモードでは =variable-pitch= を参照します。
+日本語も各 face のフォントで表示するため、日本語フォントを
+フォントセット全体へ固定しません。
+通常表示の大きさは従来どおり 11pt とし、等幅・可変幅表示もその大きさに合わせます。
+フォントがない環境では該当する設定を省き、端末では設定しません。
+新しく作成したフレームにも同じ設定を適用します。
+
+Windows の両フォントはインストール済みです。Fedora などへ導入する場合は、
+次の公式ダウンロード先から両フォントを取得します。
+
+- [[https://github.com/yuru7/PlemolJP/releases/latest][PlemolJP の最新リリース]]: Assets から通常版の =PlemolJP_v*.zip= を取得し、
+  展開後に =35= や =Console= が付かない =PlemolJP= のフォントを選びます。
+- [[https://github.com/IBM/plex/releases][IBM Plex の公式リリース一覧]]: =IBM Plex Sans JP= のリリースを探し、
+  Assets から日本語版のフォント ZIP を取得します。
+
+どちらも Windows と Fedora で利用できます。
+設定ではファイル名ではなく、フォントファミリー名を指定します。
+
+#+begin_src emacs-lisp
+  (use-package faces
+    :ensure nil
+    :demand t
+    :config
+    (defun my-setup-frame-fonts (frame)
+      "Set shared fixed and variable fonts on graphical FRAME."
+      (when (and (memq system-type '(windows-nt gnu/linux))
+                 (display-graphic-p frame))
+        (with-selected-frame frame
+          (let ((families (font-family-list)))
+            (when (member "PlemolJP" families)
+              (set-face-attribute 'default frame :family "PlemolJP" :height 110)
+              (set-face-attribute 'fixed-pitch frame
+                                  :family "PlemolJP" :height 1.0))
+            (when (member "IBM Plex Sans JP" families)
+              (set-face-attribute 'variable-pitch frame
+                                  :family "IBM Plex Sans JP" :height 1.0))))))
+    (add-hook 'after-make-frame-functions #'my-setup-frame-fonts)
+    (my-setup-frame-fonts (selected-frame)))
+#+end_src
+
+* 日本語入力
+
+GUI 版 Emacs では OS の日本語入力を使います。Emacs 内蔵の入力方式は
+設定しません。=C-\= は Emacs 内蔵の入力方式の切替であり、OS の IME
+の切替には使いません。
+
+** Windows
+
+ネイティブ版 Emacs では Microsoft IME を使います。Windows の
+「日本語 - Microsoft IME」を有効にし、Windows 側のキーで日本語入力を
+切り替えます。Emacs への追加パッケージは不要です。
+[[https://www.gnu.org/software/emacs/manual/html_node/emacs/Windows-Keyboard.html][Emacs マニュアル]]に Windows IME への対応が記載されています。
+
+ミニバッファに入るときは IME の状態を保存して英字入力に切り替えます。
+ミニバッファ内で日本語が必要なときは手動で IME をオンにできます。
+確定または =C-g= でミニバッファを抜けたら、入る前の状態に戻します。
+入れ子のミニバッファでは各入力欄の状態を別々に保存します。
+=C-x= / =C-c= / =C-h= / =M-g= / =M-s= の後に続く英字もコマンドとして
+読めるよう、プレフィックスキーを受けた時点で IME を一時的にオフにします。
+コマンド終了後は元の状態に戻し、コマンドがミニバッファを開く場合は
+保存した状態をミニバッファへ引き継ぎます。
+=repeat-mode= のキー列が続く間も英字入力を保ち、2 秒間操作がなければ
+繰り返しを終了して元の IME 状態へ戻します。読み取り専用バッファへ
+移ったときは IME をオフにし、編集可能なバッファへ戻ったら復元します。
+読み取り専用バッファでの日本語検索は手動で IME をオンにでき、検索を
+終えたら再びオフにします。
+
+#+begin_src emacs-lisp
+  (use-package minibuffer
+    :ensure nil
+    :if (eq system-type 'windows-nt)
+    :config
+    (defvar my-w32-ime-prefix-state nil
+      "Saved (BUFFER . STATUS) for a Windows IME key prefix.")
+
+    (defvar my-w32-ime-last-editable-state nil
+      "Last Windows IME status observed in an editable buffer.")
+
+    (defvar my-w32-ime-readonly-state nil
+      "Windows IME status to restore after leaving read-only buffers.")
+
+    (defvar-local my-minibuffer-ime-open-status nil
+      "Saved Windows IME status for this minibuffer invocation.")
+
+    (defun my-w32-ime-available-p ()
+      "Return non-nil when the selected frame supports Windows IME control."
+      (and (display-graphic-p)
+           (fboundp 'w32-get-ime-open-status)
+           (fboundp 'w32-set-ime-open-status)))
+
+    (defun my-w32-ime-prefix-translation (key)
+      "Return a translation for KEY that turns off the IME first."
+      (lambda (&optional _prompt)
+        (when (and (my-w32-ime-available-p)
+                   (null my-w32-ime-prefix-state))
+          (setq my-w32-ime-prefix-state
+                (cons (current-buffer) (w32-get-ime-open-status)))
+          (w32-set-ime-open-status nil))
+        key))
+
+    (defun my-w32-ime-restore-prefix ()
+      "Restore the IME saved before a command prefix or repeat sequence."
+      (when my-w32-ime-prefix-state
+        (let ((status (cdr my-w32-ime-prefix-state)))
+          (setq my-w32-ime-prefix-state nil)
+          (when (my-w32-ime-available-p)
+            (w32-set-ime-open-status status))
+          (unless (or (minibufferp) buffer-read-only)
+            (setq my-w32-ime-last-editable-state (cons t status))))))
+
+    (defun my-w32-ime-before-command ()
+      "Remember the user's IME state while editing writable text."
+      (when (and (my-w32-ime-available-p)
+                 (not (minibufferp))
+                 (not buffer-read-only))
+        (setq my-w32-ime-last-editable-state
+              (cons t (cond (my-w32-ime-prefix-state
+                             (cdr my-w32-ime-prefix-state))
+                            (my-w32-ime-readonly-state
+                             (cdr my-w32-ime-readonly-state))
+                            ((bound-and-true-p repeat-in-progress)
+                             (if my-w32-ime-last-editable-state
+                                 (cdr my-w32-ime-last-editable-state)
+                               (w32-get-ime-open-status)))
+                            (t (w32-get-ime-open-status)))))))
+
+    (defun my-w32-ime-after-command ()
+      "Keep command-only buffers and repeat keys in English."
+      (when (and (my-w32-ime-available-p) (not (minibufferp)))
+        (cond
+         (buffer-read-only
+          (unless my-w32-ime-readonly-state
+            (setq my-w32-ime-readonly-state
+                  (or (and my-w32-ime-prefix-state
+                           (cons t (cdr my-w32-ime-prefix-state)))
+                      my-w32-ime-last-editable-state
+                      (cons t (w32-get-ime-open-status))))
+            (w32-set-ime-open-status nil))
+          (setq my-w32-ime-prefix-state nil))
+         (my-w32-ime-readonly-state
+          (let ((status (cdr my-w32-ime-readonly-state)))
+            (setq my-w32-ime-readonly-state nil
+                  my-w32-ime-last-editable-state (cons t status))
+            (if (bound-and-true-p repeat-in-progress)
+                (progn
+                  (setq my-w32-ime-prefix-state
+                        (cons (current-buffer) status))
+                  (w32-set-ime-open-status nil))
+              (setq my-w32-ime-prefix-state nil)
+              (w32-set-ime-open-status status))))
+         ((bound-and-true-p repeat-in-progress)
+          (unless my-w32-ime-prefix-state
+            (setq my-w32-ime-prefix-state
+                  (cons (current-buffer)
+                        (if my-w32-ime-last-editable-state
+                            (cdr my-w32-ime-last-editable-state)
+                          (w32-get-ime-open-status))))
+            (w32-set-ime-open-status nil)))
+         (t (my-w32-ime-restore-prefix)))))
+
+    (defun my-w32-ime-after-repeat-exit (&rest _)
+      "Restore the IME when a repeat sequence ends while editing."
+      (unless (or (minibufferp) buffer-read-only my-w32-ime-readonly-state)
+        (my-w32-ime-restore-prefix)))
+
+    (defun my-w32-ime-after-isearch ()
+      "Turn the IME off again after searching a read-only buffer."
+      (when (and (my-w32-ime-available-p)
+                 buffer-read-only
+                 my-w32-ime-readonly-state)
+        (w32-set-ime-open-status nil)))
+
+    (defun my-w32-ime-install-prefix-keys (&optional frame)
+      "Translate command prefixes on graphical Windows FRAME."
+      (when (display-graphic-p frame)
+        (with-selected-frame (or frame (selected-frame))
+          (dolist (name '("C-x" "C-c" "C-h" "M-g" "M-s"))
+            (let ((key (kbd name)))
+              (unless (lookup-key input-decode-map key)
+                (define-key input-decode-map key
+                  (my-w32-ime-prefix-translation key))))))))
+
+    (defun my-minibuffer-disable-ime ()
+      "Save the Windows IME state and turn it off in the minibuffer."
+      (when (my-w32-ime-available-p)
+        (setq-local my-minibuffer-ime-open-status
+                    (cons t (if my-w32-ime-prefix-state
+                                (prog1 (cdr my-w32-ime-prefix-state)
+                                  (setq my-w32-ime-prefix-state nil))
+                              (w32-get-ime-open-status))))
+        (w32-set-ime-open-status nil)))
+
+    (defun my-minibuffer-restore-ime ()
+      "Restore the Windows IME state saved before minibuffer entry."
+      (when (my-w32-ime-available-p)
+        (when (eq (car-safe my-w32-ime-prefix-state) (current-buffer))
+          (setq my-w32-ime-prefix-state nil))
+        (when (car-safe my-minibuffer-ime-open-status)
+          (w32-set-ime-open-status (cdr my-minibuffer-ime-open-status))
+          (setq-local my-minibuffer-ime-open-status nil))))
+
+    (add-hook 'minibuffer-setup-hook #'my-minibuffer-disable-ime)
+    (add-hook 'minibuffer-exit-hook #'my-minibuffer-restore-ime)
+    (add-hook 'pre-command-hook #'my-w32-ime-before-command)
+    (add-hook 'post-command-hook #'my-w32-ime-after-command t)
+    (add-hook 'isearch-mode-end-hook #'my-w32-ime-after-isearch)
+    (add-hook 'after-make-frame-functions #'my-w32-ime-install-prefix-keys)
+    (my-w32-ime-install-prefix-keys)
+    (my-w32-ime-before-command)
+    (my-w32-ime-after-command))
+#+end_src
+
+** Fedora GNOME（Wayland）
+
+GNOME の入力ソースに IBus + Mozc を使い、Wayland 対応の
+=emacs-pgtk= で Emacs を起動します。Fedora で次を実行します。
+[[https://packages.fedoraproject.org/pkgs/mozc/][IBus + Mozc]] と [[https://packages.fedoraproject.org/pkgs/emacs/emacs-pgtk/][emacs-pgtk]] は Fedora のパッケージです。
+
+#+begin_src sh :tangle no
+sudo dnf install ibus-mozc emacs-pgtk
+#+end_src
+
+その後、ログインし直して GNOME の「設定 → キーボード → 入力ソース」に
+「日本語（Mozc）」を追加します。=emacs-pgtk= で起動し、GNOME 側の
+入力ソース切替キーで日本語入力を切り替えます。
 
 * 状態ファイルとバックアップ
 
@@ -325,13 +598,25 @@ Emacs Lisp の編集時に =flymake-mode= を有効にします。
 - =org-src-tab-acts-natively=: ソースコード内の =TAB= で言語に応じた字下げを行います。
 
 Org 固有の変数を =:custom= にまとめ、Org 本体の読み込みは必要になるまで遅らせます。
+=~/org/inbox.org= を Agenda の対象と Capture の保存先にします。
+=C-c a= で Agenda、=C-c c= で Capture を開きます。
+Agenda は 1 か月間を表示します。
+Capture では =t= で TODO を既存の =* Tasks= 見出しの下に記録します。
 
 #+begin_src emacs-lisp
   (use-package org
     :ensure nil
     :defer t
     :hook (org-mode . visual-line-mode)
+    :bind (("C-c a" . org-agenda)
+           ("C-c c" . org-capture))
     :custom
+    (org-directory (expand-file-name "~/org/"))
+    (org-agenda-files (list (expand-file-name "~/org/inbox.org")))
+    (org-agenda-span 'month)
+    (org-capture-templates
+     '(("t" "Task" entry (file+headline "~/org/inbox.org" "Tasks")
+        "* TODO %?\n%U\n")))
     (org-startup-indented t)
     (org-return-follows-link t)
     (org-special-ctrl-a/e t)
@@ -339,6 +624,32 @@ Org 固有の変数を =:custom= にまとめ、Org 本体の読み込みは必�
     (org-log-into-drawer t)
     (org-src-fontify-natively t)
     (org-src-tab-acts-natively t))
+#+end_src
+
+* Denote によるノート管理
+
+GNU ELPA の =denote= を導入し、ユーザーフォルダーの =Documents/notes/= にノートを保存します。
+=C-c n n= で新規作成、=C-c n l= でリンク、=C-c n b= で逆リンクを表示します。
+=C-c n r= でファイル名を変更し、=C-c n d= / =C-c n g= でノートの一覧 / 検索を開きます。
+ノートを開いたときのバッファ名をタイトルに短縮し、Dired では Denote のファイル名を色分けします。
+
+#+begin_src emacs-lisp
+  (use-package denote
+    :ensure t
+    :pin gnu
+    :hook (dired-mode . denote-dired-mode)
+    :bind (("C-c n n" . denote)
+           ("C-c n r" . denote-rename-file)
+           ("C-c n l" . denote-link)
+           ("C-c n b" . denote-backlinks)
+           ("C-c n d" . denote-dired)
+           ("C-c n g" . denote-grep))
+    :custom
+    (denote-directory
+     (expand-file-name "Documents/notes/"
+                       (or (getenv "USERPROFILE") (getenv "HOME"))))
+    :config
+    (denote-rename-buffer-mode +1))
 #+end_src
 
 * コードの折りたたみ
@@ -528,12 +839,13 @@ MELPA から =nucleo-completion= をインストールし、
 =nucleo-completion-ensure-module= で Rust モジュールを準備します。
 利用可能なモジュールがない場合は、パッケージが対応する配布済みモジュールを取得します。
 
-日本語の Migemo 検索を有効にします。辞書はモジュールへ同梱されているため、
-外部の =cmigemo= や =migemo.el= は不要です。
+補完候補の日本語 Migemo 照合を有効にします。辞書はモジュールへ同梱されており、
+この補完設定には外部の =cmigemo= は不要です。
 大文字・小文字を区別しない既存設定をそのまま使用します。
+Nucleo のスコアが同点の候補は、ミニバッファの入力履歴、または
+Corfu の選択履歴で新しいものを優先します。履歴でも同順位なら
+アルファベット順に並べます。スコアが異なる候補の順序は維持します。
 
-Fido はミニバッファの準備時に =flex= を優先するため、
-=icomplete-minibuffer-setup-hook= で Nucleo を優先し直します。
 カテゴリ別の照合方式も同様に調整しますが、候補取得を担当する
 =external= スタイルと、それ以外のカテゴリ設定は維持します。
 
@@ -554,33 +866,100 @@ Fido はミニバッファの準備時に =flex= を優先するため、
                       (cons 'nucleo
                             (remq 'nucleo (remq 'flex (cdr styles))))))))))
 
-    (defun my-nucleo-completion-fido-setup ()
-      "Prefer Nucleo after Fido installs its local completion settings."
-      (setq-local completion-styles (default-value 'completion-styles)
-                  completion-category-defaults
-                  (my-nucleo-completion-category-defaults
-                   completion-category-defaults)))
-    :hook
-    (icomplete-minibuffer-setup . my-nucleo-completion-fido-setup)
     :custom
     (completion-styles '(nucleo basic))
     (nucleo-completion-languages '(japanese))
+    (nucleo-completion-sort-ties-by-history t)
+    (nucleo-completion-sort-ties-alphabetically t)
     :config
     (nucleo-completion-ensure-module)
     (setq completion-category-defaults
           (my-nucleo-completion-category-defaults completion-category-defaults)))
 #+end_src
 
-* ミニバッファの縦型補完
+* Migemo によるインクリメンタル検索
 
-ミニバッファの補完候補を縦に並べ、Fido の操作で選択します。
+[[https://github.com/emacs-jp/migemo][migemo.el]] と =cmigemo= を使い、=C-s= / =C-r= の通常の Isearch で
+ローマ字から日本語を検索します。Isearch 中の =M-m= で Migemo を切り替えられます。
+補完候補の照合は引き続き Nucleo が担当します。
+
+Scoop の =cmigemo= に含まれる UTF-8 辞書を使います。Fedora では
+標準的な辞書の配置も探し、=cmigemo= と辞書がある場合だけ有効にします。
 
 #+begin_src emacs-lisp
-  (use-package icomplete
-    :ensure nil
+  (defvar my-migemo-dictionary
+    (let ((scoop-dictionary
+           (when-let* ((profile (getenv "USERPROFILE")))
+             (expand-file-name
+              "scoop/apps/cmigemo/current/cmigemo-mingw64/share/migemo/utf-8/migemo-dict"
+              profile))))
+      (cond ((and scoop-dictionary (file-readable-p scoop-dictionary))
+             scoop-dictionary)
+            ((file-readable-p "/usr/share/migemo/utf-8/migemo-dict")
+             "/usr/share/migemo/utf-8/migemo-dict")
+            ((file-readable-p "/usr/share/cmigemo/utf-8/migemo-dict")
+             "/usr/share/cmigemo/utf-8/migemo-dict")))
+    "UTF-8 dictionary used by cmigemo for Isearch.")
+
+  (use-package migemo
+    :ensure t
+    :pin melpa
+    :if (and (executable-find "cmigemo") my-migemo-dictionary)
+    :demand t
+    :custom
+    (migemo-command "cmigemo")
+    (migemo-options '("-q" "--emacs"))
+    (migemo-dictionary my-migemo-dictionary)
+    (migemo-user-dictionary nil)
+    (migemo-regex-dictionary nil)
+    (migemo-coding-system 'utf-8-unix)
+    :config
+    (migemo-init))
+#+end_src
+
+* ミニバッファの縦型補完
+
+Vertico でミニバッファの補完候補を縦に並べて選択します。
+ファイル名の補完では =RET= でディレクトリに入り、=DEL= で親ディレクトリに戻れます。
+=M-q= / =C-q= で候補を素早く挿入 / 確定し、=M-R= で直前の補完を再開します。
+補完中は =M-B= / =M-G= / =M-V= などで表示形式を一時的に切り替えられます。
+拡張機能は Vertico 本体に同梱されており、別途インストールは不要です。
+
+#+begin_src emacs-lisp
+  (use-package vertico
+    :ensure t
+    :pin gnu
     :demand t
     :config
-    (fido-vertical-mode +1))
+    (vertico-mode +1))
+
+  (use-package vertico-directory
+    :ensure nil
+    :after vertico
+    :demand t)
+
+  (use-package vertico-multiform
+    :ensure nil
+    :after (vertico vertico-directory)
+    :demand t
+    :custom
+    (vertico-multiform-categories
+     '((file (:keymap . vertico-directory-map))))
+    :config
+    (vertico-multiform-mode +1))
+
+  (use-package vertico-quick
+    :ensure nil
+    :after vertico
+    :bind (:map vertico-map
+                ("M-q" . vertico-quick-insert)
+                ("C-q" . vertico-quick-exit)))
+
+  (use-package vertico-repeat
+    :ensure nil
+    :after vertico
+    :bind ("M-R" . vertico-repeat)
+    :hook (minibuffer-setup . vertico-repeat-save))
 #+end_src
 
 * バッファ内の補完
@@ -588,9 +967,9 @@ Fido はミニバッファの準備時に =flex= を優先するため、
 [[https://github.com/minad/corfu#configuration][Corfu README の設定例]]に沿って、バッファ内の =completion-at-point= の候補をポップアップで表示します。
 =M-TAB=、または字下げ済みの位置で =TAB= を押すと手動で補完を開始します。
 候補は最大12件、幅は24〜80文字で表示し、一覧の端から次へ進むと循環します。
-候補のプレビューと先頭候補の自動選択を無効にし、選んだ候補を明示的に確定します。
+先頭候補を自動選択し、=RET= で確定します。候補のプレビューは無効にします。
 候補の照合には既存の Nucleo と basic を使います。
-自動補完は無効にし、ミニバッファでは Fido を使います。
+ミニバッファでは Vertico を使います。
 Emacs 30 のポップアップは GUI で利用でき、端末では標準の補完表示にフォールバックします。
 [[https://github.com/minad/corfu#readme][Emacs 31 では端末の子フレームにも対応]]しており、同じ設定で端末にもポップアップを表示できます。
 既存の =global-completion-preview-mode= は表示が重複するため無効にします。
@@ -601,8 +980,8 @@ Emacs 30 のポップアップは GUI で利用でき、端末では標準の補
 |------+------|
 | =C-n= / =M-n= / 下矢印 | 次の候補 |
 | =C-p= / =M-p= / 上矢印 / =Shift-TAB= | 前の候補 |
-| =TAB= | 共通部分を補完、候補選択中はその候補で補完 |
-| =RET= | 選択した候補を確定、未選択なら一覧を閉じる |
+| =TAB= | Copilot の提案があれば確定。なければ共通部分や選択中の候補を補完 |
+| =RET= | 選択した候補を確定 |
 | =M-q= | 候補に表示された短いキーを入力して直接確定 |
 | =M-h= / =M-g= | 候補の説明 / 定義位置を表示 |
 | =M-t= | 説明ポップアップの表示切り替え |
@@ -615,18 +994,23 @@ Emacs 30 のポップアップは GUI で利用でき、端末では標準の補
     :pin gnu
     :demand t
     :bind (:map corfu-map
+                ("TAB" . corfu-complete)
+                ("<tab>" . corfu-complete)
+                ("RET" . corfu-insert)
+                ("<return>" . corfu-insert)
                 ("C-n" . corfu-next)
                 ("C-p" . corfu-previous)
                 ("<backtab>" . corfu-previous))
     :custom
-    (corfu-auto nil)
+    (corfu-auto t)
+    (corfu-auto-prefix 1)
+    (corfu-auto-delay 0.1)
     (corfu-cycle t)
     (corfu-count 12)
     (corfu-min-width 24)
     (corfu-max-width 80)
     (corfu-preview-current nil)
-    (corfu-preselect 'prompt)
-    (global-corfu-minibuffer nil)
+    (corfu-preselect 'first)
     :config
     (global-completion-preview-mode -1)
     (global-corfu-mode +1))
@@ -676,6 +1060,7 @@ Nucleo や Cape が指定する順序はそのまま使います。
 =C-c p ?= で一覧を確認できます。各モードの設定が完了した後、モード既定の CAPF と
 =tempel-complete=、=cape-dabbrev= を =cape-capf-super= で組み合わせます。
 モードの補完候補、テンプレート名、バッファ内の単語を同じ候補一覧に表示します。
+=ispell-completion-at-point= は辞書がない環境でエラーになるため、統合対象から除外します。
 CAPF 内の =t= はグローバルの補完関数に展開し、繰り返し設定しても二重に包みません。
 ミニバッファは対象外とし、ファイル名と Org 内の Emacs Lisp コードブロックの
 補完は従来どおり先に試します。Cape は補完の開始位置が同じ候補を統合します。
@@ -705,7 +1090,7 @@ CAPF 内の =t= はグローバルの補完関数に展開し、繰り返し設�
           (setq-local my-cape-super-capf
                       (apply #'cape-capf-super
                              (delete-dups
-                              (append capfs
+                               (append (remq #'ispell-completion-at-point capfs)
                                       (list #'tempel-complete #'cape-dabbrev))))
                       completion-at-point-functions
                       (list #'cape-elisp-block #'cape-file my-cape-super-capf)))))
@@ -749,10 +1134,444 @@ Emacs 31.1 以上で MELPA 版へ移行する場合は、=M-x package-delete= �
       :demand t))
 #+end_src
 
+* GitHub Copilot による入力補助
+
+[[https://github.com/copilot-emacs/copilot.el][copilot.el]] を MELPA から導入し、プログラミング用および文章用バッファで
+提案を表示します。=TAB= で提案全体、=C-TAB= または =C-c C-f= で次の単語を確定します。
+Corfu の候補一覧と同時に表示されている場合も、=TAB= は Copilot の確定を優先します。
+Corfu の候補は =C-n= / =C-p= または上下キーで選び、=RET= で確定します。
+候補を移動している間も Copilot の提案を残すため、見比べてから =TAB= で採用できます。
+Copilot の提案がないときの =TAB= は通常の字下げや補完を行います。
+=M-n= / =M-p= は Corfu の一覧表示中は Corfu の候補移動、それ以外は Copilot の提案切り替えに使います。
+従来の =C-c TAB=、=C-c M-n= / =C-c M-p= も引き続き使えます。
+初回は =M-x copilot-install-server= と =M-x copilot-login= を実行し、
+GitHub Copilot にサインインしてください。
+
+間接バッファでは本文が共有されるため、Copilot の変更追跡は同じ本文につき
+一つだけ有効にします。=org-capture=、=org-tree-to-indirect-buffer=、
+=clone-indirect-buffer= などで複製した直後に追跡状態を分離し、編集するバッファで
+追跡を新しく開始します。元バッファと間接バッファを行き来すると自動で切り替わり、
+Lisp から別バッファを編集する場合も変更前に切り替えます。
+別のバッファで編集された内容は、再開時に全文を送って Copilot に反映します。
+手動で Copilot を無効にしたバッファは、自動再開の対象にしません。
+接続が切れている場合は変更フックからサーバーを起動せず、追跡を停止して本文の編集を
+続けられるようにします。切替時の接続エラーは警告に残し、次の操作で再開を試みます。
+
+#+begin_src emacs-lisp :tangle no
+  (use-package copilot
+    :ensure t
+    :pin melpa
+    :hook ((prog-mode . copilot-mode)
+           (text-mode . copilot-mode))
+    :bind (:map copilot-completion-map
+                ("TAB" . copilot-accept-completion)
+                ("<tab>" . copilot-accept-completion)
+                ("C-c TAB" . copilot-accept-completion)
+                ("C-c <tab>" . copilot-accept-completion)
+                ("C-c C-f" . copilot-accept-completion-by-word)
+                ("C-c M-n" . copilot-next-completion)
+                ("C-c M-p" . copilot-previous-completion))
+    :config
+    (dolist (command '(corfu-next corfu-previous))
+      (add-to-list 'copilot-clear-overlay-ignore-commands command))
+
+    ;; Let Corfu handle candidate navigation while its completion is active.
+    (dolist (binding '(("M-n" . copilot-next-completion)
+                       ("M-p" . copilot-previous-completion)))
+      (keymap-set copilot-completion-map (car binding)
+                  `(menu-item "" ,(cdr binding)
+                              :filter (lambda (command)
+                                        (unless (bound-and-true-p completion-in-region-mode)
+                                          command)))))
+
+    (defvar my-copilot-indirect-switching nil
+      "Non-nil while transferring Copilot between buffers sharing text.")
+
+    (defvar my-copilot-indirect-closing nil
+      "Buffer being closed, excluded when choosing the next Copilot buffer.")
+
+    (defvar-local my-copilot-indirect-root nil
+      "Base buffer of a managed group of buffers sharing text.")
+
+    (defvar-local my-copilot-indirect-enabled nil
+      "Non-nil when the user wants Copilot in this managed buffer.")
+
+    (defun my-copilot-indirect-members (root)
+      "Return live, enabled Copilot buffers sharing ROOT's text."
+      (seq-filter
+       (lambda (buffer)
+         (and (not (eq buffer my-copilot-indirect-closing))
+              (with-current-buffer buffer
+                (and (eq my-copilot-indirect-root root)
+                     my-copilot-indirect-enabled))))
+       (buffer-list)))
+
+    (defun my-copilot-indirect-activate (buffer)
+      "Make BUFFER the only active Copilot buffer for its shared text."
+      (when (buffer-live-p buffer)
+        (with-current-buffer buffer
+          (when my-copilot-indirect-enabled
+            (let ((my-copilot-indirect-switching t))
+              (dolist (other (my-copilot-indirect-members
+                             my-copilot-indirect-root))
+                (unless (eq other buffer)
+                  (my-copilot-indirect-pause other)))
+              (unless (bound-and-true-p copilot-mode)
+                ;; A fresh tracker and didOpen resynchronize the whole text.
+                (copilot-mode 1)))))))
+
+    (defun my-copilot-indirect-resume (root)
+      "Resume an enabled member of ROOT after a buffer closes or is disabled."
+      (let* ((members (my-copilot-indirect-members root))
+             (active (seq-find
+                      (lambda (buffer)
+                        (buffer-local-value 'copilot-mode buffer))
+                      members)))
+        (my-copilot-indirect-try-activate
+         (or active (and (memq (current-buffer) members) (current-buffer))
+             (car members)))))
+
+    (defun my-copilot-indirect-pause (buffer)
+      "Stop BUFFER's tracker even if closing its server document fails."
+      (with-current-buffer buffer
+        (when (or (bound-and-true-p copilot-mode) copilot--track-changes-id)
+          (let ((my-copilot-indirect-switching t))
+            (condition-case err
+                (copilot-mode -1)
+              (error
+               ;; Cancelling a completion can fail before mode teardown runs.
+               ;; Teardown removes our hooks and tracker before sending didClose.
+               (condition-case close-error
+                   (copilot--mode-teardown)
+                 (error
+                  (display-warning 'copilot
+                                   (error-message-string close-error))))
+               (when (and copilot--track-changes-id
+                          (memq copilot--track-changes-id track-changes--trackers))
+                 (track-changes-unregister copilot--track-changes-id))
+               (setq-local copilot-mode nil copilot--track-changes-id nil)
+               (display-warning 'copilot (error-message-string err))))))))
+
+    (defun my-copilot-indirect-try-activate (buffer)
+      "Activate BUFFER, keeping editor hooks usable on connection failures."
+      (condition-case err
+          (progn (my-copilot-indirect-activate buffer)
+                 (and (buffer-live-p buffer)
+                      (buffer-local-value 'copilot-mode buffer)))
+        (error
+         (when (buffer-live-p buffer)
+           (my-copilot-indirect-pause buffer))
+         (display-warning 'copilot
+                          (format "Copilot switching paused: %s"
+                                  (error-message-string err)))
+         nil)))
+
+    (defun my-copilot-indirect-before-command ()
+      "Resume Copilot when returning to a managed buffer."
+      (when (and my-copilot-indirect-enabled
+                 (not (bound-and-true-p copilot-mode)))
+        (my-copilot-indirect-try-activate (current-buffer))))
+
+    (defun my-copilot-indirect-before-change (beg end)
+      "Switch tracking before a Lisp edit of an inactive buffer at BEG..END."
+      ;; A non-cloned indirect buffer has no inherited local hooks or modes.
+      (when (and (not my-copilot-indirect-root) (buffer-base-buffer))
+        (let ((root (buffer-base-buffer)))
+          (when (or (buffer-local-value 'copilot-mode root)
+                    (buffer-local-value 'my-copilot-indirect-root root)
+                    (my-copilot-indirect-members root))
+            (when (buffer-local-value 'copilot-mode root)
+              (my-copilot-indirect-manage root root t))
+            (my-copilot-indirect-manage (current-buffer) root copilot-mode))))
+      (when my-copilot-indirect-root
+        (if (or (not my-copilot-indirect-enabled)
+                (and (not (bound-and-true-p copilot-mode))
+                     (not (copilot--connection-alivep))))
+            ;; A disabled view can still change the shared text. Stop other
+            ;; trackers so they restart from the new text next time. Never
+            ;; start a disconnected server from inside a text-change hook.
+            (dolist (other (my-copilot-indirect-members
+                           my-copilot-indirect-root))
+              (my-copilot-indirect-pause other))
+          (unless (bound-and-true-p copilot-mode)
+            (when (my-copilot-indirect-try-activate (current-buffer))
+              ;; The new before hook may not be in this run's hook list yet.
+              (when copilot--track-changes-id
+                (track-changes--before beg end)))))))
+
+    (defun my-copilot-indirect-release ()
+      "Resume a remaining buffer after Copilot has closed this document."
+      (let ((my-copilot-indirect-closing (current-buffer)))
+        (my-copilot-indirect-resume my-copilot-indirect-root)))
+
+    (defun my-copilot-indirect-manage (buffer root enabled)
+      "Manage BUFFER as a member of ROOT, respecting ENABLED."
+      (with-current-buffer buffer
+        (setq-local my-copilot-indirect-root root
+                    my-copilot-indirect-enabled enabled)
+        (add-hook 'clone-indirect-buffer-hook
+                  #'my-copilot-indirect-cloned -100 t)
+        (add-hook 'before-change-functions
+                  #'my-copilot-indirect-before-change -100 t)
+        (add-hook 'kill-buffer-hook #'my-copilot-indirect-release 90 t)))
+
+    (defun my-copilot-indirect-mode-changed ()
+      "Remember explicit mode changes and manage newly enabled indirect buffers."
+      (unless my-copilot-indirect-switching
+        (when copilot-mode
+          (add-hook 'clone-indirect-buffer-hook
+                    #'my-copilot-indirect-cloned -100 t))
+        (when (or (buffer-base-buffer) my-copilot-indirect-root
+                  (my-copilot-indirect-members (current-buffer)))
+          (let ((root (or (buffer-base-buffer) (current-buffer))))
+            (when (and (not (eq root (current-buffer)))
+                       (buffer-local-value 'copilot-mode root))
+              (my-copilot-indirect-manage root root t))
+            (my-copilot-indirect-manage (current-buffer) root copilot-mode)
+            (if copilot-mode
+                (my-copilot-indirect-activate (current-buffer))
+              (my-copilot-indirect-resume root))))))
+
+    (defvar-local my-copilot-indirect-initialized nil
+      "Buffer whose copied Copilot state has already been detached.")
+
+    (defun my-copilot-indirect-cloned ()
+      "Detach copied Copilot tracking before editing a new indirect buffer."
+      (when (and (buffer-base-buffer)
+                 (or (bound-and-true-p copilot-mode)
+                     my-copilot-indirect-root
+                     (buffer-local-value 'copilot-mode (buffer-base-buffer))
+                     (buffer-local-value 'my-copilot-indirect-root
+                                         (buffer-base-buffer)))
+                 (not (eq my-copilot-indirect-initialized (current-buffer))))
+        (let* ((indirect (current-buffer))
+               (root (buffer-base-buffer))
+               (enabled (or (bound-and-true-p copilot-mode)
+                            my-copilot-indirect-enabled))
+               (id copilot--track-changes-id)
+               (owner (and id
+                           (seq-find
+                            (lambda (buffer)
+                              (and (not (eq buffer indirect))
+                                   (eq id (buffer-local-value
+                                           'copilot--track-changes-id buffer))))
+                            (buffer-list))))
+               (my-copilot-indirect-switching t)
+               ready)
+          (setq-local my-copilot-indirect-initialized indirect)
+          ;; Never unregister the copied ID: its tracker belongs to the source.
+          ;; Detach our lists first, without mutating their shared cons cells.
+          (setq-local copilot-mode nil
+                      copilot--track-changes-id nil)
+          (when id
+            (setq-local track-changes--trackers (remq id track-changes--trackers)
+                        track-changes--clean-trackers
+                        (remq id track-changes--clean-trackers)
+                        track-changes--disjoint-trackers
+                        (remq id track-changes--disjoint-trackers))
+            (when (null track-changes--trackers)
+              (remove-hook 'before-change-functions #'track-changes--before t)
+              (remove-hook 'after-change-functions #'track-changes--after t)
+              (dolist (variable '(track-changes--state track-changes--before-beg
+                                  track-changes--before-end track-changes--before-string
+                                  track-changes--before-no track-changes--before-clean
+                                  track-changes--buffer-size))
+                (kill-local-variable variable))))
+          (when owner (my-copilot-indirect-manage owner root t))
+          (when (buffer-local-value 'copilot-mode root)
+            (my-copilot-indirect-manage root root t))
+          (my-copilot-indirect-manage indirect root enabled)
+          (unwind-protect
+              (progn
+                (when enabled (my-copilot-indirect-try-activate indirect))
+                (setq ready t))
+            (unless ready
+              (kill-buffer indirect)
+              (my-copilot-indirect-resume root))))))
+
+    (add-hook 'copilot-mode-hook #'my-copilot-indirect-mode-changed)
+    (add-hook 'pre-command-hook #'my-copilot-indirect-before-command -90)
+    (add-hook 'before-change-functions #'my-copilot-indirect-before-change -100)
+    (add-hook 'clone-indirect-buffer-hook #'my-copilot-indirect-cloned -100)
+    (advice-add 'copilot--ensure-doc-open :before
+                #'my-copilot-indirect-before-command))
+#+end_src
+
+* Gnus の新着メール通知
+
+現在の =nnml= と =mail-sources= による受信時に、新着件数をまとめて通知します。
+Windows の GUI Emacs では標準のトレイ通知、Fedora では D-Bus 経由の
+デスクトップ通知を使います。Fedora は D-Bus 対応の Emacs と、ログイン中の
+デスクトップ通知サービスが必要です。
+
+=.gnus= の既存の =gnus-demon-scan-mail= が10分間隔で受信するため、
+通知もその受信時に出ます。Gnus を起動したままにしてください。
+手動で受信した場合も通知します。保存済みの未読メールでは通知せず、
+今回新たに取り込んだメールだけを対象にします。=spam= グループは除外します。
+通知には件数だけを表示します。
+
+再起動後に =M-x my-gnus-notification-test= で通知表示を確認できます。
+このコマンドはメールを取得しません。受信処理のエラーと区別できるよう、
+通知に失敗した場合は =*Messages*= に理由を表示します。
+
+#+begin_src emacs-lisp
+  (use-package nnmail
+    :ensure nil
+    :defer t
+    :preface
+    (defvar my-gnus-notification-active nil)
+    (defvar my-gnus-notification-message-ids nil)
+    (defvar my-gnus-notification-w32-id nil)
+    (defvar my-gnus-notification-w32-frame nil)
+
+    (defun my-gnus-desktop-notify (body)
+      "Display BODY using the desktop notification service."
+      (condition-case err
+          (if (eq system-type 'windows-nt)
+              (progn
+                (unless (and (display-graphic-p)
+                             (fboundp 'w32-notification-notify))
+                  (error "Windows GUI Emacs is required"))
+                (when (and my-gnus-notification-w32-id
+                           (frame-live-p my-gnus-notification-w32-frame))
+                  (with-selected-frame my-gnus-notification-w32-frame
+                    (w32-notification-close my-gnus-notification-w32-id)))
+                (setq my-gnus-notification-w32-id nil
+                      my-gnus-notification-w32-frame (selected-frame))
+                (setq my-gnus-notification-w32-id
+                      (w32-notification-notify :title "Gnus" :body body))
+                (unless my-gnus-notification-w32-id
+                  (error "Windows notification was not displayed")))
+            (require 'notifications)
+            (notifications-notify :title "Gnus" :body body
+                                  :app-name "Emacs" :timeout 10000))
+        (error (message "Gnus notification failed: %s"
+                        (error-message-string err)))))
+
+    (defun my-gnus-notification-test ()
+      "Display a test notification without fetching mail."
+      (interactive)
+      (my-gnus-desktop-notify "新着メール通知のテストです。"))
+
+    (defun my-gnus-notification-begin ()
+      "Start collecting newly received mail for this fetch."
+      (setq my-gnus-notification-message-ids nil
+            my-gnus-notification-active t))
+
+    (defun my-gnus-notification-collect (id group &rest _ignored)
+      "Record newly spooled ID in GROUP during mail retrieval."
+      (when (and my-gnus-notification-active
+                 (stringp id)
+                 (not (and (stringp group)
+                           (string-match-p "\\(?:\\`\\|[:.]\\)spam\\'" group))))
+        (unless (member id my-gnus-notification-message-ids)
+          (push id my-gnus-notification-message-ids))))
+
+    (defun my-gnus-notification-end ()
+      "Notify once about the mail collected during this fetch."
+      (let ((count (length my-gnus-notification-message-ids)))
+        (setq my-gnus-notification-active nil
+              my-gnus-notification-message-ids nil)
+        (when (> count 0)
+          (my-gnus-desktop-notify
+           (format "新着メールが %d 件あります。" count)))))
+
+    :init
+    (add-hook 'nnmail-pre-get-new-mail-hook #'my-gnus-notification-begin)
+    (add-hook 'nnmail-spool-hook #'my-gnus-notification-collect)
+    (add-hook 'nnmail-post-get-new-mail-hook #'my-gnus-notification-end))
+#+end_src
+
+* Gnus のアドレス帳と送信元アドレス
+
+GNU ELPA の BBDB を Gnus と Message に接続します。既存の =bbdb= ファイルを
+アドレス帳として使い、閲覧したメールと送信したメールから連絡先を登録・更新します。
+迷惑メールの =spam= グループでは新規登録しません。
+曖昧な名前やアドレスの統合は BBDB の確認を残します。
+=C-c b b= でアドレス帳を開き、=C-c b c= でメールの宛先欄を補完できます。
+宛先欄の通常の補完にも BBDB の候補を出し、本文では従来の Corfu 補完を使います。
+
+自分のアドレスは Gnus の設定にある =user-mail-address= と、将来
+=gnus-posting-styles= に追加する =address= から取得します。返信時は元メールの
+宛先に一致するアドレスを =From= に選びます。新規メールの送信元は Gnus の
+既存設定に従います。
+
+#+begin_src emacs-lisp
+  (use-package bbdb
+    :ensure t
+    :pin gnu
+    :bind (("C-c b b" . bbdb)
+           ("C-c b c" . bbdb-complete-mail))
+    :preface
+    (defun my-gnus-own-addresses ()
+      "Return mail addresses configured for this Gnus session."
+      (delete-dups
+       (delq nil
+             (cons (and (stringp user-mail-address) user-mail-address)
+                   (when (boundp 'gnus-posting-styles)
+                     (mapcar (lambda (style)
+                               (let ((address (cadr (assq 'address (cdr style)))))
+                                 (and (stringp address) address)))
+                             gnus-posting-styles))))))
+
+    (defun my-gnus-own-address-p (address)
+      "Return non-nil when ADDRESS belongs to this Gnus user."
+      (member-ignore-case address (my-gnus-own-addresses)))
+
+    (defun my-gnus-bbdb-auto-action ()
+      "Avoid creating contacts from the Gnus spam group."
+      (if (and (eq (bbdb-mua) 'gnus)
+               (boundp 'gnus-newsgroup-name)
+               (stringp gnus-newsgroup-name)
+               (string-match-p "\\(?:\\`\\|[:.]\\)spam\\'"
+                               gnus-newsgroup-name))
+          'search
+        'create))
+
+    (defun my-gnus-bbdb-init ()
+      "Connect BBDB and refresh the user's mail addresses after Gnus starts."
+      (require 'bbdb)
+      (bbdb-initialize 'gnus 'message)
+      (bbdb-mua-auto-update-init 'gnus 'message)
+      (let ((addresses (my-gnus-own-addresses)))
+        (when addresses
+          (setq bbdb-user-mail-address-re
+                (concat "\\`" (regexp-opt addresses t) "\\'")))))
+
+    :init
+    (add-hook 'gnus-started-hook #'my-gnus-bbdb-init)
+    :custom
+    (bbdb-file (locate-user-emacs-file "bbdb"))
+    (bbdb-complete-mail nil)
+    (bbdb-mua-auto-action #'my-gnus-bbdb-auto-action)
+    (bbdb-mua-pop-up nil)
+    (message-expand-name-standard-ui t)
+    (message-alternative-emails #'my-gnus-own-address-p))
+#+end_src
+
+* gptel による AI チャット
+
+[[https://github.com/karthink/gptel][gptel]] を NonGNU ELPA から導入します。
+=M-x gptel= でチャットを開き、バッファ内の =C-c RET= で送信します。
+チャットの接続先には GitHub Copilot を既定で選びます。OpenAI の API キーは不要です。
+初回の送信時に GitHub へのログインを案内されます。必要なら
+=M-x gptel-gh-login= から手動でログインできます。
+モデルは gptel の Copilot 用一覧から選択できます。
+
+#+begin_src emacs-lisp :tangle no
+  (use-package gptel
+    :ensure t
+    :pin nongnu
+    :commands (gptel gptel-send gptel-menu gptel-gh-login)
+    :config
+    (require 'gptel-gh)
+    (setq gptel-backend (gptel-make-gh-copilot "Copilot")))
+#+end_src
+
 * Consult による検索と移動
 
 [[https://github.com/minad/consult#use-package-example][Consult README の use-package 設定例]]に沿って、GNU ELPA から導入します。
-既存の Fido による候補表示と Nucleo による照合を利用します。
+Vertico による候補表示と Nucleo による照合を利用します。
 キー割り当てからコマンドを遅延読み込みし、レジスタと xref の連携は
 =:init= で起動時から有効にします。
 
@@ -801,10 +1620,94 @@ grep 系コマンドでは =#検索式#絞り込み= の前半を外部コマン
 後半を Nucleo で照合します。日本語の Migemo 照合はこの後半や
 =consult-line= などの Emacs 内の候補に対して働きます。
 
+=rg= のプロセス出力は UTF-8 に指定します。ファイル名の区切りに NUL を含む
+検索結果では文字コードの自動判定が働かず、日本語のファイル名や本文が
+=\343\201...= のように表示されることがあるためです。
+Windows で検索語を渡すときはシステムの文字コードを使い、日本語の引数が
+文字化けしないようにします。=consult-find= は Scoop の Git に同梱された
+GNU find がある場合にそれを使います。Windows 標準の =find.exe= は
+別用途のコマンドであり、ファイル名検索には使えません。
+リモートディレクトリでは接続先の =find= を使います。
+
+Windows の =consult-grep= も、Scoop の Git に同梱された GNU grep がある場合に
+それを使い、UTF-8 の検索結果と日本語ファイル名を正しく受け取ります。
+リモートディレクトリでは接続先の =grep= を使います。
+GNU grep には ripgrep の =--encoding= に相当する変換指定がないため、
+CP932 などを指定して検索するときは次の専用 ripgrep コマンドを使います。
+
+** 文字コードを選んで ripgrep 検索する
+
+=M-x my-consult-ripgrep-with-encoding= は、検索の前に対象ファイルの文字コードを
+Emacs 標準の =read-coding-system= で毎回尋ねます。通常の文字コード一覧から
+=utf-8=、=cp932=、=euc-jp= などを選べます。
+最初の既定値は =utf-8= で、次回からは前回の選択を既定値にします。
+選択は Savehist で保存し、Emacs の再起動後も引き継ぎます。
+=C-u M-x my-consult-ripgrep-with-encoding= では検索先も指定できます。
+
+選択した Emacs の名前を ripgrep の名前へ変換し、対応を確認してから検索します。
+たとえば =cp932= は =shift_jis= に変換します。=-dos= / =-unix= などの改行形式は
+検索用の文字コード指定から除きます。Emacs 独自の形式など、ripgrep が対応しない
+ものを選んだ場合は検索せずに通知します。実際の変換規則は ripgrep に従うため、
+Emacs の同名の形式と細部が異なる場合があります。
+
+選んだ文字コードはその検索だけに適用し、結果は UTF-8 で受け取ります。
+元ファイルは変更しません。UTF-8 と CP932 が混在する場合は、各文字コードで
+検索してください。通常の =M-s r= と =consult-ripgrep= の動作はそのままです。
+
 #+begin_src emacs-lisp
   (use-package consult
     :ensure t
     :pin gnu
+    :preface
+    (defvar consult-ripgrep-args)
+    (defvar my-consult-ripgrep-encoding 'utf-8
+      "Last file encoding selected for ripgrep searches.")
+
+    (defun my-consult-ripgrep-encoding-name (coding)
+      "Translate Emacs CODING to a ripgrep encoding label."
+      (let* ((base (coding-system-base coding))
+             (mime (coding-system-get base :mime-charset)))
+        (cond
+         ((eq base 'japanese-cp932) "shift_jis")
+         ((memq base '(utf-8 utf-8-with-signature)) "utf-8")
+         ((eq (coding-system-get base :coding-type) 'utf-16)
+          (if (eq (coding-system-get base :endian) 'little)
+              "utf-16le"
+            "utf-16be"))
+         (t (symbol-name (or mime base))))))
+
+    (defun my-consult-ripgrep-check-encoding (encoding)
+      "Check that ripgrep supports ENCODING, without searching files."
+      (let ((program (car (consult--build-args consult-ripgrep-args)))
+            (coding-system-for-read 'utf-8-unix))
+        (with-temp-buffer
+          (unless (memq (process-file program nil t nil
+                                      "--no-config" (concat "--encoding=" encoding)
+                                      "--regexp=." "--" "-")
+                        '(0 1))
+            (user-error "ripgrep で文字コード %s を利用できません: %s"
+                        encoding (string-trim (buffer-string)))))))
+
+    (defun my-consult-ripgrep-with-encoding (&optional dir initial)
+      "Choose a file encoding, then search DIR with ripgrep.
+  Always prompt, using the previous choice as the default.
+  DIR and INITIAL have the same meaning as in `consult-ripgrep'."
+      (interactive "P")
+      (require 'consult)
+      (let* ((saved (if (stringp my-consult-ripgrep-encoding)
+                        (intern-soft (downcase my-consult-ripgrep-encoding))
+                      my-consult-ripgrep-encoding))
+             (choice (read-coding-system
+                      "検索対象の文字コード: "
+                      (if (and saved (coding-system-p saved)) saved 'utf-8)))
+             (encoding (my-consult-ripgrep-encoding-name choice)))
+        (my-consult-ripgrep-check-encoding encoding)
+        (let ((consult-ripgrep-args
+               (append (ensure-list consult-ripgrep-args)
+                       (list (concat "--encoding=" encoding)))))
+          (setq my-consult-ripgrep-encoding choice)
+          (consult-ripgrep dir initial))))
+
     :bind (;; Mode commands, history, and help
            ("C-c M-x" . consult-mode-command)
            ("C-c h" . consult-history)
@@ -858,19 +1761,74 @@ grep 系コマンドでは =#検索式#絞り込み= の前半を外部コマン
            ("M-s" . consult-history)
            ("M-r" . consult-history))
     :init
+    (with-eval-after-load 'savehist
+      (add-to-list 'savehist-additional-variables 'my-consult-ripgrep-encoding))
     (advice-add #'register-preview :override #'consult-register-window)
     (setq register-preview-delay 0.5
           xref-show-xrefs-function #'consult-xref
           xref-show-definitions-function #'consult-xref)
     :config
+    (modify-coding-system-alist
+     'process "\\(?:\\`\\|[/\\\\]\\)rg\\(?:\\.exe\\)?\\'"
+     (cons 'utf-8-unix
+           (if (eq system-type 'windows-nt) locale-coding-system 'utf-8-unix)))
+    (when (eq system-type 'windows-nt)
+      (when-let* ((profile (getenv "USERPROFILE"))
+                  (find (expand-file-name "scoop/apps/git/current/usr/bin/find.exe"
+                                          profile))
+                  ((file-executable-p find)))
+        (setq consult-find-args
+              `((if (file-remote-p default-directory) "find" ,find)
+                ". -not ( -path */.[A-Za-z]* -prune )"))
+        (modify-coding-system-alist
+         'process (concat "\\`" (regexp-quote find) "\\'")
+         (cons 'utf-8-unix locale-coding-system)))
+      (when-let* ((profile (getenv "USERPROFILE"))
+                  (grep (expand-file-name "scoop/apps/git/current/usr/bin/grep.exe"
+                                          profile))
+                  ((file-executable-p grep)))
+        (let* ((args (ensure-list consult-grep-args))
+               (head (and (stringp (car args))
+                          (split-string-and-unquote (car args)))))
+          (when (equal (car head) "grep")
+            (setq consult-grep-args
+                  (append
+                   (list `(if (file-remote-p default-directory) "grep" ,grep))
+                   (when (cdr head) (list (list 'quote (cdr head))))
+                   (cdr args)))))
+        (modify-coding-system-alist
+         'process (concat "\\`" (regexp-quote grep) "\\'")
+         (cons 'utf-8-unix locale-coding-system))))
     (consult-customize
      consult-theme :preview-key '(:debounce 0.2 any)
-     consult-ripgrep consult-git-grep consult-grep consult-man
+     consult-ripgrep my-consult-ripgrep-with-encoding
+     consult-git-grep consult-grep consult-man
      consult-bookmark consult-recent-file consult-xref
      consult-source-bookmark consult-source-file-register
      consult-source-recent-file consult-source-project-recent-file
      :preview-key '(:debounce 0.4 any))
     (setq consult-narrow-key "<"))
+#+end_src
+
+* Consult でディレクトリを選ぶ
+
+[[https://github.com/karthink/consult-dir][consult-dir]] を MELPA から導入し、=C-x C-d= で
+プロジェクトや最近開いたファイルの親ディレクトリを選んで Dired で開きます。
+最近使ったディレクトリの候補には、起動時に有効にしている =recentf-mode= の履歴を使います。
+ファイル名の補完中にも同じキーでディレクトリを切り替えられます。
+候補表示には Vertico と Consult を使います。
+
+#+begin_src emacs-lisp
+  (use-package consult-dir
+    :ensure t
+    :pin melpa
+    :bind (("C-x C-d" . consult-dir)
+           :map minibuffer-local-map
+           ("C-x C-d" . consult-dir))
+    :custom
+    (consult-dir-default-command #'consult-dir-dired)
+    :config
+    (add-to-list 'consult-dir-sources 'consult-dir--source-recentf t))
 #+end_src
 
 * カレントディレクトリの検索と SQL 用の一覧変換
@@ -897,7 +1855,7 @@ grep 系コマンドでは =#検索式#絞り込み= の前半を外部コマン
 
 [[https://github.com/minad/marginalia#configuration][Marginalia README]] に沿って GNU ELPA から導入し、
 ファイル情報やコマンドの説明などを補完候補に表示します。
-既存の Fido と組み合わせて使えます。ミニバッファの =M-A= で
+Vertico と組み合わせて使えます。ミニバッファの =M-A= で
 注釈の詳細度を切り替えたり、注釈を非表示にしたりできます。
 
 #+begin_src emacs-lisp
@@ -916,7 +1874,7 @@ grep 系コマンドでは =#検索式#絞り込み= の前半を外部コマン
 =C-.= でミニバッファの選択候補やポイント上の対象に応じた操作を選び、
 =C-;= で対象の既定の操作を実行します。=C-h B= はキー割り当ての一覧です。
 =C-.= の後に =S= で候補を一覧バッファに集め、=E= で候補に適したモードへ
-書き出せます。Fido の候補は追加設定なしで対象になります。
+書き出せます。Vertico の候補は追加設定なしで対象になります。
 
 プレフィックスキーの後の =C-h= は補完付きのキー一覧を開きます。
 既存の which-key は、プレフィックス入力後に待ったときの案内を引き続き表示します。
@@ -1021,14 +1979,14 @@ camelCase などの語の境界を単語移動・編集で認識します。
 * 最近開いたファイル
 
 最近開いたファイルの履歴を記録します。
-=recentf-max-saved-items= で最大200件を保存します。
+=recentf-max-saved-items= で最大1024件を保存します。
 
 #+begin_src emacs-lisp
   (use-package recentf
     :ensure nil
     :demand t
     :custom
-    (recentf-max-saved-items 200)
+    (recentf-max-saved-items 1024)
     :config
     (recentf-mode +1))
 #+end_src
@@ -1042,7 +2000,10 @@ camelCase などの語の境界を単語移動・編集で認識します。
     :ensure nil
     :demand t
     :config
-    (repeat-mode +1))
+    (repeat-mode +1)
+    (when (eq system-type 'windows-nt)
+      (setq repeat-exit-timeout 2)
+      (advice-add 'repeat-exit :after #'my-w32-ime-after-repeat-exit)))
 #+end_src
 
 * カーソル位置の復元
