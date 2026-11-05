@@ -261,6 +261,20 @@ GUI 版 Emacs では OS の日本語入力を使います。Emacs 内蔵の入�
 切り替えます。Emacs への追加パッケージは不要です。
 [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Windows-Keyboard.html][Emacs マニュアル]]に Windows IME への対応が記載されています。
 
+** Fedora GNOME（Wayland / Fcitx 5）
+
+この環境では Fcitx 5 + Mozc と =emacs-pgtk= を使います。
+GTK の入力方式を ~GTK_IM_MODULE=fcitx~ に設定したデスクトップセッションで
+Emacs を起動してください。現在の環境にはこの設定と Mozc の登録があります。
+X11 版 Emacs では ~XMODIFIERS=@im=fcitx~ の設定も認識します。
+
+Fcitx 5 の [[https://github.com/fcitx/fcitx5/blob/master/src/modules/dbus/dbusmodule.cpp][D-Bus コントローラー]]を使い、入力状態の取得とオン・オフを行います。
+Emacs に追加パッケージは不要ですが、D-Bus 対応の Emacs が必要です。
+外部コマンドをキー入力のたびに起動せず、Emacs から直接通信します。
+Fcitx 5 が未起動の場合、端末フレーム、IBus を使う環境では自動制御を行いません。
+
+** コマンド操作中の英字入力（Windows / Fedora 共通）
+
 ミニバッファに入るときは IME の状態を保存して英字入力に切り替えます。
 ミニバッファ内で日本語が必要なときは手動で IME をオンにできます。
 確定または =C-g= でミニバッファを抜けたら、入る前の状態に戻します。
@@ -273,166 +287,196 @@ GUI 版 Emacs では OS の日本語入力を使います。Emacs 内蔵の入�
 繰り返しを終了して元の IME 状態へ戻します。読み取り専用バッファへ
 移ったときは IME をオフにし、編集可能なバッファへ戻ったら復元します。
 読み取り専用バッファでの日本語検索は手動で IME をオンにでき、検索を
-終えたら再びオフにします。
+終えたら再びオフにします。Fedora では Emacs にフォーカスがある間だけ
+制御し、他のアプリを操作中に繰り返し終了タイマーが IME を変更することを防ぎます。
 
 #+begin_src emacs-lisp
   (use-package minibuffer
     :ensure nil
-    :if (eq system-type 'windows-nt)
+    :if (memq system-type '(windows-nt gnu/linux))
     :config
-    (defvar my-w32-ime-prefix-state nil
-      "Saved (BUFFER . STATUS) for a Windows IME key prefix.")
+    (defvar my-ime-prefix-state nil
+      "Saved (BUFFER . STATUS) for an IME key prefix.")
 
-    (defvar my-w32-ime-last-editable-state nil
-      "Last Windows IME status observed in an editable buffer.")
+    (defvar my-ime-last-editable-state nil
+      "Last IME status observed in an editable buffer.")
 
-    (defvar my-w32-ime-readonly-state nil
-      "Windows IME status to restore after leaving read-only buffers.")
+    (defvar my-ime-readonly-state nil
+      "IME status to restore after leaving read-only buffers.")
 
     (defvar-local my-minibuffer-ime-open-status nil
-      "Saved Windows IME status for this minibuffer invocation.")
+      "Saved IME status for this minibuffer invocation.")
 
-    (defun my-w32-ime-available-p ()
-      "Return non-nil when the selected frame supports Windows IME control."
+    (when (eq system-type 'gnu/linux)
+      (require 'dbus nil t))
+
+    (defun my-ime-fcitx5-call (method)
+      "Call Fcitx 5 controller METHOD without starting an IME daemon.
+  Return nil if the session bus or controller is unavailable.  Bound each
+  D-Bus call to 100 milliseconds so command hooks cannot wait indefinitely."
+      (when (fboundp 'dbus-call-method)
+        (condition-case nil
+            (let ((owner (dbus-call-method
+                          :session "org.freedesktop.DBus"
+                          "/org/freedesktop/DBus" "org.freedesktop.DBus"
+                          "GetNameOwner" :timeout 100 "org.fcitx.Fcitx5")))
+              (when owner
+                (dbus-call-method
+                 :session owner "/controller" "org.fcitx.Fcitx.Controller1"
+                 method :timeout 100)))
+          (error nil))))
+
+    (defun my-ime-available-p ()
+      "Return non-nil when the selected GUI frame supports IME control."
       (and (display-graphic-p)
-           (fboundp 'w32-get-ime-open-status)
-           (fboundp 'w32-set-ime-open-status)))
+           (pcase system-type
+             ('windows-nt
+              (and (fboundp 'w32-get-ime-open-status)
+                   (fboundp 'w32-set-ime-open-status)))
+             ('gnu/linux
+              ;; The controller operates on the most recent input context.
+              ;; Never change another application's IME from a repeat timer.
+              (and (eq (frame-focus-state) t)
+                   (or (equal (getenv "GTK_IM_MODULE") "fcitx")
+                       (and (eq window-system 'x)
+                            (equal (getenv "XMODIFIERS") "@im=fcitx")))
+                   (memq (my-ime-fcitx5-call "State") '(1 2)))))))
 
-    (defun my-w32-ime-prefix-translation (key)
+    (defun my-ime-get-open-status ()
+      "Return non-nil if the OS IME is active on the selected frame."
+      (pcase system-type
+        ('windows-nt (w32-get-ime-open-status))
+        ('gnu/linux (eq (my-ime-fcitx5-call "State") 2))))
+
+    (defun my-ime-set-open-status (status)
+      "Set the selected frame's OS IME to STATUS."
+      (pcase system-type
+        ('windows-nt (w32-set-ime-open-status status))
+        ('gnu/linux
+         (when (eq (frame-focus-state) t)
+           (my-ime-fcitx5-call (if status "Activate" "Deactivate"))))))
+
+    (defun my-ime-prefix-translation (key)
       "Return a translation for KEY that turns off the IME first."
       (lambda (&optional _prompt)
-        (when (and (my-w32-ime-available-p)
-                   (null my-w32-ime-prefix-state))
-          (setq my-w32-ime-prefix-state
-                (cons (current-buffer) (w32-get-ime-open-status)))
-          (w32-set-ime-open-status nil))
+        (when (and (my-ime-available-p)
+                   (null my-ime-prefix-state))
+          (setq my-ime-prefix-state
+                (cons (current-buffer) (my-ime-get-open-status)))
+          (my-ime-set-open-status nil))
         key))
 
-    (defun my-w32-ime-restore-prefix ()
+    (defun my-ime-restore-prefix ()
       "Restore the IME saved before a command prefix or repeat sequence."
-      (when my-w32-ime-prefix-state
-        (let ((status (cdr my-w32-ime-prefix-state)))
-          (setq my-w32-ime-prefix-state nil)
-          (when (my-w32-ime-available-p)
-            (w32-set-ime-open-status status))
+      (when my-ime-prefix-state
+        (let ((status (cdr my-ime-prefix-state)))
+          (setq my-ime-prefix-state nil)
+          (when (my-ime-available-p)
+            (my-ime-set-open-status status))
           (unless (or (minibufferp) buffer-read-only)
-            (setq my-w32-ime-last-editable-state (cons t status))))))
+            (setq my-ime-last-editable-state (cons t status))))))
 
-    (defun my-w32-ime-before-command ()
+    (defun my-ime-before-command ()
       "Remember the user's IME state while editing writable text."
-      (when (and (my-w32-ime-available-p)
+      (when (and (my-ime-available-p)
                  (not (minibufferp))
                  (not buffer-read-only))
-        (setq my-w32-ime-last-editable-state
-              (cons t (cond (my-w32-ime-prefix-state
-                             (cdr my-w32-ime-prefix-state))
-                            (my-w32-ime-readonly-state
-                             (cdr my-w32-ime-readonly-state))
+        (setq my-ime-last-editable-state
+              (cons t (cond (my-ime-prefix-state
+                             (cdr my-ime-prefix-state))
+                            (my-ime-readonly-state
+                             (cdr my-ime-readonly-state))
                             ((bound-and-true-p repeat-in-progress)
-                             (if my-w32-ime-last-editable-state
-                                 (cdr my-w32-ime-last-editable-state)
-                               (w32-get-ime-open-status)))
-                            (t (w32-get-ime-open-status)))))))
+                             (if my-ime-last-editable-state
+                                 (cdr my-ime-last-editable-state)
+                               (my-ime-get-open-status)))
+                            (t (my-ime-get-open-status)))))))
 
-    (defun my-w32-ime-after-command ()
+    (defun my-ime-after-command ()
       "Keep command-only buffers and repeat keys in English."
-      (when (and (my-w32-ime-available-p) (not (minibufferp)))
+      (when (and (my-ime-available-p) (not (minibufferp)))
         (cond
          (buffer-read-only
-          (unless my-w32-ime-readonly-state
-            (setq my-w32-ime-readonly-state
-                  (or (and my-w32-ime-prefix-state
-                           (cons t (cdr my-w32-ime-prefix-state)))
-                      my-w32-ime-last-editable-state
-                      (cons t (w32-get-ime-open-status))))
-            (w32-set-ime-open-status nil))
-          (setq my-w32-ime-prefix-state nil))
-         (my-w32-ime-readonly-state
-          (let ((status (cdr my-w32-ime-readonly-state)))
-            (setq my-w32-ime-readonly-state nil
-                  my-w32-ime-last-editable-state (cons t status))
+          (unless my-ime-readonly-state
+            (setq my-ime-readonly-state
+                  (or (and my-ime-prefix-state
+                           (cons t (cdr my-ime-prefix-state)))
+                      my-ime-last-editable-state
+                      (cons t (my-ime-get-open-status))))
+            (my-ime-set-open-status nil))
+          (setq my-ime-prefix-state nil))
+         (my-ime-readonly-state
+          (let ((status (cdr my-ime-readonly-state)))
+            (setq my-ime-readonly-state nil
+                  my-ime-last-editable-state (cons t status))
             (if (bound-and-true-p repeat-in-progress)
                 (progn
-                  (setq my-w32-ime-prefix-state
+                  (setq my-ime-prefix-state
                         (cons (current-buffer) status))
-                  (w32-set-ime-open-status nil))
-              (setq my-w32-ime-prefix-state nil)
-              (w32-set-ime-open-status status))))
+                  (my-ime-set-open-status nil))
+              (setq my-ime-prefix-state nil)
+              (my-ime-set-open-status status))))
          ((bound-and-true-p repeat-in-progress)
-          (unless my-w32-ime-prefix-state
-            (setq my-w32-ime-prefix-state
+          (unless my-ime-prefix-state
+            (setq my-ime-prefix-state
                   (cons (current-buffer)
-                        (if my-w32-ime-last-editable-state
-                            (cdr my-w32-ime-last-editable-state)
-                          (w32-get-ime-open-status))))
-            (w32-set-ime-open-status nil)))
-         (t (my-w32-ime-restore-prefix)))))
+                        (if my-ime-last-editable-state
+                            (cdr my-ime-last-editable-state)
+                          (my-ime-get-open-status))))
+            (my-ime-set-open-status nil)))
+         (t (my-ime-restore-prefix)))))
 
-    (defun my-w32-ime-after-repeat-exit (&rest _)
+    (defun my-ime-after-repeat-exit (&rest _)
       "Restore the IME when a repeat sequence ends while editing."
-      (unless (or (minibufferp) buffer-read-only my-w32-ime-readonly-state)
-        (my-w32-ime-restore-prefix)))
+      (unless (or (minibufferp) buffer-read-only my-ime-readonly-state)
+        (my-ime-restore-prefix)))
 
-    (defun my-w32-ime-after-isearch ()
+    (defun my-ime-after-isearch ()
       "Turn the IME off again after searching a read-only buffer."
-      (when (and (my-w32-ime-available-p)
+      (when (and (my-ime-available-p)
                  buffer-read-only
-                 my-w32-ime-readonly-state)
-        (w32-set-ime-open-status nil)))
+                 my-ime-readonly-state)
+        (my-ime-set-open-status nil)))
 
-    (defun my-w32-ime-install-prefix-keys (&optional frame)
-      "Translate command prefixes on graphical Windows FRAME."
+    (defun my-ime-install-prefix-keys (&optional frame)
+      "Translate command prefixes on graphical FRAME."
       (when (display-graphic-p frame)
         (with-selected-frame (or frame (selected-frame))
           (dolist (name '("C-x" "C-c" "C-h" "M-g" "M-s"))
             (let ((key (kbd name)))
               (unless (lookup-key input-decode-map key)
                 (define-key input-decode-map key
-                  (my-w32-ime-prefix-translation key))))))))
+                  (my-ime-prefix-translation key))))))))
 
     (defun my-minibuffer-disable-ime ()
-      "Save the Windows IME state and turn it off in the minibuffer."
-      (when (my-w32-ime-available-p)
+      "Save the IME state and turn it off in the minibuffer."
+      (when (my-ime-available-p)
         (setq-local my-minibuffer-ime-open-status
-                    (cons t (if my-w32-ime-prefix-state
-                                (prog1 (cdr my-w32-ime-prefix-state)
-                                  (setq my-w32-ime-prefix-state nil))
-                              (w32-get-ime-open-status))))
-        (w32-set-ime-open-status nil)))
+                    (cons t (if my-ime-prefix-state
+                                (prog1 (cdr my-ime-prefix-state)
+                                  (setq my-ime-prefix-state nil))
+                              (my-ime-get-open-status))))
+        (my-ime-set-open-status nil)))
 
     (defun my-minibuffer-restore-ime ()
-      "Restore the Windows IME state saved before minibuffer entry."
-      (when (my-w32-ime-available-p)
-        (when (eq (car-safe my-w32-ime-prefix-state) (current-buffer))
-          (setq my-w32-ime-prefix-state nil))
+      "Restore the IME state saved before minibuffer entry."
+      (when (my-ime-available-p)
+        (when (eq (car-safe my-ime-prefix-state) (current-buffer))
+          (setq my-ime-prefix-state nil))
         (when (car-safe my-minibuffer-ime-open-status)
-          (w32-set-ime-open-status (cdr my-minibuffer-ime-open-status))
+          (my-ime-set-open-status (cdr my-minibuffer-ime-open-status))
           (setq-local my-minibuffer-ime-open-status nil))))
 
     (add-hook 'minibuffer-setup-hook #'my-minibuffer-disable-ime)
     (add-hook 'minibuffer-exit-hook #'my-minibuffer-restore-ime)
-    (add-hook 'pre-command-hook #'my-w32-ime-before-command)
-    (add-hook 'post-command-hook #'my-w32-ime-after-command t)
-    (add-hook 'isearch-mode-end-hook #'my-w32-ime-after-isearch)
-    (add-hook 'after-make-frame-functions #'my-w32-ime-install-prefix-keys)
-    (my-w32-ime-install-prefix-keys)
-    (my-w32-ime-before-command)
-    (my-w32-ime-after-command))
+    (add-hook 'pre-command-hook #'my-ime-before-command)
+    (add-hook 'post-command-hook #'my-ime-after-command t)
+    (add-hook 'isearch-mode-end-hook #'my-ime-after-isearch)
+    (add-hook 'after-make-frame-functions #'my-ime-install-prefix-keys)
+    (my-ime-install-prefix-keys)
+    (my-ime-before-command)
+    (my-ime-after-command))
 #+end_src
-
-** Fedora GNOME（Wayland）
-
-GNOME の入力ソースに IBus + Mozc を使い、Wayland 対応の
-=emacs-pgtk= で Emacs を起動します。Fedora で次を実行します。
-[[https://packages.fedoraproject.org/pkgs/mozc/][IBus + Mozc]] と [[https://packages.fedoraproject.org/pkgs/emacs/emacs-pgtk/][emacs-pgtk]] は Fedora のパッケージです。
-
-#+begin_src sh :tangle no
-sudo dnf install ibus-mozc emacs-pgtk
-#+end_src
-
-その後、ログインし直して GNOME の「設定 → キーボード → 入力ソース」に
-「日本語（Mozc）」を追加します。=emacs-pgtk= で起動し、GNOME 側の
-入力ソース切替キーで日本語入力を切り替えます。
 
 * 状態ファイルとバックアップ
 
@@ -2001,9 +2045,9 @@ camelCase などの語の境界を単語移動・編集で認識します。
     :demand t
     :config
     (repeat-mode +1)
-    (when (eq system-type 'windows-nt)
+    (when (memq system-type '(windows-nt gnu/linux))
       (setq repeat-exit-timeout 2)
-      (advice-add 'repeat-exit :after #'my-w32-ime-after-repeat-exit)))
+      (advice-add 'repeat-exit :after #'my-ime-after-repeat-exit)))
 #+end_src
 
 * カーソル位置の復元
